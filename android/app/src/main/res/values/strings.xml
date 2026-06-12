@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">바카라 딜러 트레이닝</string>
+    <string name="title_activity_main">바카라 딜러 트레이닝</string>
+    <string name="package_name">com.baccarat.trainer</string>
+    <string name="custom_url_scheme">com.baccarat.trainer</string>
+</resources>

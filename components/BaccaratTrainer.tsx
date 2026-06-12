@@ -1038,7 +1038,10 @@ export default function BaccaratDealerTrainerV3() {
   }
 
 async function callClaude(prompt) {
-    const res = await fetch("/api/claude", {
+    const base = typeof window !== "undefined" && window.location.protocol === "capacitor:" 
+      ? "https://baccarat-dealer-trainer.vercel.app" 
+      : "";
+    const res = await fetch(`${base}/api/claude`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ prompt }),
