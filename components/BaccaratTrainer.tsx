@@ -476,7 +476,11 @@ export default function BaccaratDealerTrainerV3() {
       try {
         if (typeof window !== "undefined" && window.storage) {
           const r = await Preferences.get({ key: "baccarat-best" });
-          if (r && r.value) setRecords(JSON.parse(r.value));
+if (r && r.value) setRecords(JSON.parse(r.value));
+else {
+  const local = localStorage.getItem("baccarat-best");
+  if (local) setRecords(JSON.parse(local));
+}
         }
       } catch (e) { /* 기록 없음 */ }
     })();
@@ -1180,6 +1184,7 @@ ${transcript}
       setRecords(next);
       try {
         await Preferences.set({ key: "baccarat-best", value: JSON.stringify(next) });
+localStorage.setItem("baccarat-best", JSON.stringify(next));
       } catch (e) { /* 저장 실패해도 진행 */ }
     }
     setExitConfirm(false);
