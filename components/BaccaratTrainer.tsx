@@ -1,5 +1,6 @@
 // @ts-nocheck
 "use client";
+import { Preferences } from '@capacitor/preferences';
 import React, { useState, useRef, useEffect } from "react";
 
 // ═══════════ 상수 ═══════════
@@ -474,7 +475,7 @@ export default function BaccaratDealerTrainerV3() {
     (async () => {
       try {
         if (typeof window !== "undefined" && window.storage) {
-          const r = await window.storage.get("baccarat-best");
+          const r = await Preferences.get({ key: "baccarat-best" });
           if (r && r.value) setRecords(JSON.parse(r.value));
         }
       } catch (e) { /* 기록 없음 */ }
@@ -1178,7 +1179,7 @@ ${transcript}
       const next = { ...records, [key]: { score, acc } };
       setRecords(next);
       try {
-        if (typeof window !== "undefined" && window.storage) await window.storage.set("baccarat-best", JSON.stringify(next));
+        await Preferences.set({ key: "baccarat-best", value: JSON.stringify(next) });
       } catch (e) { /* 저장 실패해도 진행 */ }
     }
     setExitConfirm(false);
