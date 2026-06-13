@@ -473,10 +473,8 @@ export default function BaccaratDealerTrainerV3() {
   useEffect(() => {
     (async () => {
       try {
-        if (typeof window !== "undefined" && window.storage) {
-          const local = localStorage.getItem("baccarat-best");
-if (local) setRecords(JSON.parse(local));
-        }
+        const local = localStorage.getItem("baccarat-best");
+        if (local) setRecords(JSON.parse(local));
       } catch (e) { /* 기록 없음 */ }
     })();
   }, []);
