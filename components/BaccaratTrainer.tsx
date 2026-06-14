@@ -75,6 +75,12 @@ export default function BaccaratDealerTrainerV3() {
   const prevPhaseRef = useRef("intro");
   useEffect(() => { setSfxOn(soundOn); }, [soundOn]);
   useEffect(() => {
+    if (phase !== "settleOrder" || !result) return;
+    setSettleOrderOpts(shuffle(result.winner === "tie"
+      ? [{label:"TIE 적중자에게 지급, P/B 베팅은 푸시 — 원금 그대로",ok:true},{label:"P/B 베팅을 모두 수거한다",ok:false},{label:"P/B 베팅에도 절반을 지급한다",ok:false}]
+      : [{label:"지는 베팅을 먼저 수거한다 (테이크)",ok:true},{label:"이긴 베팅부터 지급한다 (페이)",ok:false},{label:"사용한 카드를 먼저 수거한다",ok:false}]));
+  }, [phase, result?.winner]);
+  useEffect(() => {
     (async () => {
       try {
         const local = localStorage.getItem("baccarat-best");
