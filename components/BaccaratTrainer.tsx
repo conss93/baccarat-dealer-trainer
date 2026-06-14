@@ -110,6 +110,10 @@ export default function BaccaratDealerTrainerV3() {
   const [bonusQuiz, setBonusQuiz] = useState(null);
   const [changeMessy, setChangeMessy] = useState(false);
   const pThirdRef = useRef(null);
+  const pThirdPendingRef = useRef(null);
+  const bThirdPendingRef = useRef(null);
+  const [lateBetBtnOrder, setLateBetBtnOrder] = useState(true);
+  const [takeConfirm, setTakeConfirm] = useState(null);
   const timersRef = useRef([]);
   const customersRef = useRef([]);
   useEffect(() => { customersRef.current = customers; }, [customers]);
@@ -259,6 +263,7 @@ export default function BaccaratDealerTrainerV3() {
       const c = cs[Math.floor(Math.random() * cs.length)];
       later(() => {
         showBubble(c.seat, "⚠ 잠깐! 이것도 받아 줘요! (칩을 밀어 넣는다)", "warn", 2400);
+        setLateBetBtnOrder(Math.random() < 0.5);
         setLateBet(c); setPhase("lateBet");
       }, 750);
     } else {
@@ -280,12 +285,12 @@ export default function BaccaratDealerTrainerV3() {
     const card = pendingDeal[dealtCount];
     moveArm(POS_SHOE, "슈"); SFX.deal();
     later(() => moveArm(correctTarget === "P" ? POS_PZONE : POS_BZONE, "딜링"), 300);
-    if (correctTarget === "P") setPCards((c) => [...c, card]); else setBCards((c) => [...c, card]);
+    if (correctTarget === "P") setPCards((c) => [...c, { ...card, faceDown: true }]); else setBCards((c) => [...c, { ...card, faceDown: true }]);
     if (ok) grade(true, `정확한 딜링 순서 (${correctTarget === "P" ? "Player" : "Banker"})`);
     else grade(false, `딜링 순서 오류! ${dealtCount + 1}번째 카드는 ${correctTarget === "P" ? "PLAYER" : "BANKER"} 차례`, "딜링 순서는 항상 P→B→P→B. 카드는 올바른 위치로 교정되었습니다.");
     const n = dealtCount + 1;
     setDealtCount(n);
-    if (n === 4) { lockFor(500); later(() => prepareInitialCall(), 480); }
+    if (n === 4) { lockFor(500); later(() => setPhase("openPlayerCards"), 480); }
   }
 
   function prepareInitialCall() {
@@ -300,6 +305,36 @@ export default function BaccaratDealerTrainerV3() {
     setCallOptions(shuffle(opts));
     moveArm(POS_REST, "");
     setPhase("callInitial");
+  }
+
+  function openPlayerCards() {
+    setPCards((cards) => cards.map((c) => ({ ...c, faceDown: false })));
+    moveArm(POS_PZONE, "오픈"); SFX.deal();
+    lockFor(600);
+    later(() => setPhase("openBankerCards"), 550);
+  }
+  function openBankerCards() {
+    setBCards((cards) => cards.map((c) => ({ ...c, faceDown: false })));
+    moveArm(POS_BZONE, "오픈"); SFX.deal();
+    lockFor(600);
+    later(() => prepareInitialCall(), 550);
+  }
+  function openPlayerThird() {
+    const { card, value } = pThirdPendingRef.current;
+    pThirdRef.current = value;
+    setPCards((cards) => cards.map((c, i) => i === cards.length - 1 ? { ...c, faceDown: false } : c));
+    moveArm(POS_PZONE, "오픈"); SFX.deal();
+    setBanner({ en: "Player 3rd", ko: `${card.rank}${card.suit}` });
+    lockFor(600);
+    later(() => setPhase("bankerThird"), 550);
+  }
+  function openBankerThird() {
+    const { card, bFinalTotal } = bThirdPendingRef.current;
+    setBCards((cards) => cards.map((c, i) => i === cards.length - 1 ? { ...c, faceDown: false } : c));
+    moveArm(POS_BZONE, "오픈"); SFX.deal();
+    setBanner({ en: "Banker 3rd", ko: `${card.rank}${card.suit}` });
+    lockFor(800);
+    later(() => prepareWinnerCall(handTotal(pCards), bFinalTotal, false), 750);
   }
 
   function pickInitialCall(opt) {
@@ -320,16 +355,20 @@ export default function BaccaratDealerTrainerV3() {
     const shouldDraw = pT <= 5;
     if (draw === shouldDraw) grade(true, shouldDraw ? "정확 — Player 0~5는 추가 카드" : "정확 — Player 6~7은 스탠드");
     else grade(false, "Player 3rd 룰 오류", `Player 0~5면 무조건 카드, 6~7이면 스탠드 (현재 ${pT})`);
-    let pThirdVal = null;
     if (shouldDraw) {
-      const c = drawCard(); pThirdVal = cardValue(c);
-      setPCards((cards) => [...cards, c]);
+      const c = drawCard();
+      pThirdPendingRef.current = { card: c, value: cardValue(c) };
+      setPCards((cards) => [...cards, { ...c, faceDown: true }]);
       moveArm(POS_SHOE, "슈"); SFX.deal(); later(() => moveArm(POS_PZONE, "딜링"), 300);
-      setBanner({ en: "Card for Player", ko: `${c.rank}${c.suit}` });
-    } else setBanner({ en: "Player stands", ko: "스탠드" });
-    pThirdRef.current = pThirdVal;
-    lockFor(shouldDraw ? 950 : 550);
-    later(() => setPhase("bankerThird"), shouldDraw ? 900 : 500);
+      setBanner({ en: "Card for Player (face down)", ko: "뒷면 드로우" });
+      lockFor(950);
+      later(() => setPhase("openPlayerThird"), 900);
+    } else {
+      pThirdRef.current = null;
+      setBanner({ en: "Player stands", ko: "스탠드" });
+      lockFor(550);
+      later(() => setPhase("bankerThird"), 500);
+    }
   }
 
   function bankerThirdDecision(draw) {
@@ -342,14 +381,20 @@ export default function BaccaratDealerTrainerV3() {
       : `Player 3rd 값 ${pThird}일 때 Banker ${bT}는 ${shouldDraw ? "카드" : "스탠드"} (룰 차트 참조)`;
     if (draw === shouldDraw) grade(true, shouldDraw ? "정확 — Card for Banker" : "정확 — Banker 스탠드");
     else grade(false, "Banker 3rd 룰 오류", ruleText);
-    let newB = bCards;
     if (shouldDraw) {
-      const c = drawCard(); newB = [...bCards, c]; setBCards(newB);
+      const c = drawCard();
+      const newBCards = [...bCards, { ...c, faceDown: true }];
+      bThirdPendingRef.current = { card: c, bFinalTotal: handTotal(newBCards) };
+      setBCards(newBCards);
       moveArm(POS_SHOE, "슈"); SFX.deal(); later(() => moveArm(POS_BZONE, "딜링"), 300);
-      setBanner({ en: "Card for Banker", ko: `${c.rank}${c.suit}` });
-    } else setBanner({ en: "Banker stands", ko: "스탠드" });
-    lockFor(1000);
-    later(() => prepareWinnerCall(handTotal(pCards), handTotal(newB), false), 900);
+      setBanner({ en: "Card for Banker (face down)", ko: "뒷면 드로우" });
+      lockFor(1000);
+      later(() => setPhase("openBankerThird"), 900);
+    } else {
+      setBanner({ en: "Banker stands", ko: "스탠드" });
+      lockFor(1000);
+      later(() => prepareWinnerCall(handTotal(pCards), handTotal(bCards), false), 900);
+    }
   }
 
   function prepareWinnerCall(pT, bT, natural) {
@@ -412,6 +457,7 @@ export default function BaccaratDealerTrainerV3() {
 
   // ── 테이크: 실전 워크벤치 ──
   function enterTakeWB() {
+    setTakeConfirm(null);
     setTakeState({ taken: {}, wrongTried: {} });
     setPhase("takeWB");
   }
@@ -804,7 +850,7 @@ ${transcript}
     { key: "payWB", label: "페이 · 커미션" },
     { key: "chat", label: "손님 응대" },
   ];
-  const alias = { lateBet: "betting", collecting: "takeWB", payout: "payWB", roundEnd: "chat" };
+  const alias = { lateBet: "betting", collecting: "takeWB", payout: "payWB", roundEnd: "chat", openPlayerCards: "dealing", openBankerCards: "dealing", openPlayerThird: "playerThird", openBankerThird: "bankerThird" };
   const phaseIdx = stepList.findIndex((s) => s.key === (alias[phase] || phase));
   const n = customers.length;
   const elbow = { x: (ARM_ORIGIN.x + armPos.x) / 2 - (armPos.x - ARM_ORIGIN.x) * 0.1, y: (ARM_ORIGIN.y + armPos.y) / 2 + 16 };
@@ -1059,6 +1105,34 @@ ${transcript}
                 </>
               )}
 
+              {phase === "openPlayerCards" && (
+                <>
+                  <PanelTitle t="STEP 2 — Player 카드 오픈" d="Player 카드 2장을 앞면으로 뒤집어 보여줍니다." />
+                  <ActionBtn accent onClick={openPlayerCards}>오픈</ActionBtn>
+                </>
+              )}
+
+              {phase === "openBankerCards" && (
+                <>
+                  <PanelTitle t="STEP 2 — Banker 카드 오픈" d="Banker 카드 2장을 앞면으로 뒤집어 보여줍니다." />
+                  <ActionBtn accent onClick={openBankerCards}>오픈</ActionBtn>
+                </>
+              )}
+
+              {phase === "openPlayerThird" && (
+                <>
+                  <PanelTitle t="STEP 4 — Player 3번째 카드 오픈" d="Player 3번째 카드를 앞면으로 공개합니다." />
+                  <ActionBtn accent onClick={openPlayerThird}>오픈</ActionBtn>
+                </>
+              )}
+
+              {phase === "openBankerThird" && (
+                <>
+                  <PanelTitle t="STEP 5 — Banker 3번째 카드 오픈" d="Banker 3번째 카드를 앞면으로 공개합니다." />
+                  <ActionBtn accent onClick={openBankerThird}>오픈</ActionBtn>
+                </>
+              )}
+
               {phase === "callInitial" && (
                 <>
                   <PanelTitle t="STEP 3 — 초기 합계 콜링" d="양쪽 합계를 콜하세요." />
@@ -1114,19 +1188,31 @@ ${transcript}
               {/* 실전 테이크 워크벤치 */}
               {phase === "takeWB" && takeState && (
                 <div>
-                  <PanelTitle t="STEP 8 — 테이크 (수동)" d="지는 베팅 스택만 골라 탭하면 수거됩니다. 이긴 베팅·푸시는 손대면 안 됩니다." />
+                  <PanelTitle t="STEP 8 — 테이크 (수동)" d="지는 베팅 스택을 탭하면 수거 확인창이 뜹니다. 이긴 베팅·푸시는 손대면 안 됩니다." />
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0,1fr))", gap: 7, marginBottom: 10 }}>
                     {customers.filter((c) => c.side).map((c) => {
                       const taken = takeState.taken[c.id];
+                      const isConfirming = takeConfirm && takeConfirm.id === c.id;
                       return (
-                        <div key={c.id} onClick={() => { if (!taken) { handleTakeDrop(c); if (c.side !== result.winner) { moveArm(spotPos(c.seat, customers.length), "테이크"); later(() => moveArm(POS_TRAY, ""), 500); } } }} style={{ background: taken ? "rgba(127,201,143,.08)" : "rgba(13,10,7,.5)", border: `1px solid ${taken ? "rgba(127,201,143,.4)" : "rgba(246,241,227,.18)"}`, borderRadius: 10, padding: "8px 6px", textAlign: "center", cursor: taken ? "default" : "pointer", userSelect: "none", WebkitTapHighlightColor: "transparent", opacity: taken ? 0.55 : 1 }}>
-                          <div style={{ fontSize: 16 }}>{c.emoji}</div>
-                          <div style={{ fontSize: 10.5, fontWeight: 700 }}>{c.name}</div>
-                          <div style={{ fontSize: 9.5, color: sideColor[c.side], fontWeight: 800 }}>{sideLabel[c.side]}</div>
-                          <div style={{ display: "flex", justifyContent: "center", marginTop: 4, minHeight: 30 }}>
-                            {taken ? <div style={{ fontSize: 10, color: "#9fdcab", fontWeight: 700 }}>수거 ✓</div> : <MiniStack amount={c.bet} />}
+                        <div key={c.id} style={{ position: "relative" }}>
+                          <div onClick={() => { if (!taken && !isConfirming) setTakeConfirm({ id: c.id, cust: c }); }} style={{ background: taken ? "rgba(127,201,143,.08)" : "rgba(13,10,7,.5)", border: `1px solid ${taken ? "rgba(127,201,143,.4)" : isConfirming ? GOLD : "rgba(246,241,227,.18)"}`, borderRadius: 10, padding: "8px 6px", textAlign: "center", cursor: taken ? "default" : "pointer", userSelect: "none", WebkitTapHighlightColor: "transparent", opacity: taken ? 0.55 : 1 }}>
+                            <div style={{ fontSize: 16 }}>{c.emoji}</div>
+                            <div style={{ fontSize: 10.5, fontWeight: 700 }}>{c.name}</div>
+                            <div style={{ fontSize: 9.5, color: sideColor[c.side], fontWeight: 800 }}>{sideLabel[c.side]}</div>
+                            <div style={{ display: "flex", justifyContent: "center", marginTop: 4, minHeight: 30 }}>
+                              {taken ? <div style={{ fontSize: 10, color: "#9fdcab", fontWeight: 700 }}>수거 ✓</div> : <MiniStack amount={c.bet} />}
+                            </div>
+                            {mode === "practice" && !taken && <div style={{ fontSize: 9, color: GOLD }}>{won(c.bet)}</div>}
                           </div>
-                          {mode === "practice" && !taken && <div style={{ fontSize: 9, color: GOLD }}>{won(c.bet)}</div>}
+                          {isConfirming && (
+                            <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(13,10,7,.92)", borderRadius: 10, border: `1px solid ${GOLD}88`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6, zIndex: 10 }}>
+                              <div style={{ fontSize: 10, color: IVORY, fontWeight: 700 }}>수거?</div>
+                              <div style={{ display: "flex", gap: 6 }}>
+                                <button onClick={() => { handleTakeDrop(c); if (c.side !== result.winner) { moveArm(spotPos(c.seat, customers.length), "테이크"); later(() => moveArm(POS_TRAY, ""), 500); } setTakeConfirm(null); }} style={{ background: GOLD, color: "#1d1609", border: "none", borderRadius: 6, padding: "5px 10px", fontSize: 11, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>수거</button>
+                                <button onClick={() => setTakeConfirm(null)} style={{ background: "rgba(246,241,227,.08)", color: IVORY, border: "1px solid rgba(246,241,227,.2)", borderRadius: 6, padding: "5px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>취소</button>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       );
                     })}

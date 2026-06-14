@@ -116,7 +116,13 @@ export const MiniStack = ({ amount, invalid }) => {
 
 export const CardView = ({ card, w = 30, sideways }) => {
   const h = w * 1.45;
-  const inner = (
+  const inner = card.faceDown ? (
+    <div style={{ width: w, height: h, borderRadius: 4, background: "linear-gradient(135deg, #1a3a6b, #0d2044)", border: `1px solid ${GOLD}44`, boxShadow: "0 2px 6px rgba(0,0,0,.5)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ width: w * 0.7, height: h * 0.7, borderRadius: 2, border: `1px solid ${GOLD}66`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ fontSize: w * 0.45, opacity: 0.5, color: GOLD }}>♦</div>
+      </div>
+    </div>
+  ) : (
     <div style={{ width: w, height: h, borderRadius: 4, background: IVORY, color: card.color, boxShadow: "0 2px 6px rgba(0,0,0,.5)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", fontWeight: 800, fontFamily: "'Playfair Display', serif" }}>
       <div style={{ fontSize: w * 0.52, lineHeight: 1 }}>{card.rank}</div>
       <div style={{ fontSize: w * 0.5, lineHeight: 1.05 }}>{card.suit}</div>
