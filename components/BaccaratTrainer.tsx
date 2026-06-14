@@ -114,6 +114,7 @@ export default function BaccaratDealerTrainerV3() {
   const bThirdPendingRef = useRef(null);
   const [lateBetBtnOrder, setLateBetBtnOrder] = useState(true);
   const [takeConfirm, setTakeConfirm] = useState(null);
+  const [settleOrderOpts, setSettleOrderOpts] = useState([]);
   const timersRef = useRef([]);
   const customersRef = useRef([]);
   useEffect(() => { customersRef.current = customers; }, [customers]);
@@ -423,15 +424,15 @@ export default function BaccaratDealerTrainerV3() {
   }
 
   // ── 정산 판단 ──
-  function pickSettleOrder(i) {
+  function pickSettleOrder(ok) {
     if (lock) return;
     const isTie = result.winner === "tie";
     if (isTie) {
-      if (i === 0) grade(true, "정확 — 타이는 진 사람이 없습니다");
+      if (ok) grade(true, "정확 — 타이는 진 사람이 없습니다");
       else grade(false, "타이 정산 오류", "타이 시 P/B 베팅은 푸시(원금 유지). TIE 적중에만 8:1 지급. 수거할 베팅이 없습니다.");
       enterPayStage();
     } else {
-      if (i === 0) grade(true, "정확 — 테이크 먼저");
+      if (ok) grade(true, "정확 — 테이크 먼저");
       else grade(false, "정산 순서 오류", "정산은 항상 ① 테이크(지는 베팅 수거) → ② 페이. 분쟁 방지의 기본입니다.");
       if (mode === "real") enterTakeWB();
       else startAutoCollect();
@@ -1089,8 +1090,17 @@ ${transcript}
                 <>
                   <PanelTitle t="⚠ 돌발 — 마감 후 베팅 시도" d={`${lateBet.emoji} ${lateBet.name} 님이 마감 직후 칩을 밀어 넣으려 합니다.`} />
                   <div style={{ display: "grid", gap: 8 }}>
-                    <ActionBtn onClick={() => resolveLateBet(true)}>🖐 “No more bets, sir.” — 정중히 거절하고 칩을 돌려드린다</ActionBtn>
-                    <ActionBtn onClick={() => resolveLateBet(false)}>이번 한 번만 받아준다</ActionBtn>
+                    {lateBetBtnOrder ? (
+                      <>
+                        <ActionBtn onClick={() => resolveLateBet(true)}>🖐 “No more bets, sir.” — 정중히 거절하고 칩을 돌려드린다</ActionBtn>
+                        <ActionBtn onClick={() => resolveLateBet(false)}>이번 한 번만 받아준다</ActionBtn>
+                      </>
+                    ) : (
+                      <>
+                        <ActionBtn onClick={() => resolveLateBet(false)}>이번 한 번만 받아준다</ActionBtn>
+                        <ActionBtn onClick={() => resolveLateBet(true)}>🖐 “No more bets, sir.” — 정중히 거절하고 칩을 돌려드린다</ActionBtn>
+                      </>
+                    )}
                   </div>
                 </>
               )}
@@ -1175,10 +1185,7 @@ ${transcript}
                 <>
                   <PanelTitle t="STEP 7 — 정산 절차 판단" d={result.winner === "tie" ? "타이입니다. 정산 절차는?" : "정산의 첫 번째 동작은?"} />
                   <div style={{ display: "grid", gap: 8 }}>
-                    {(result.winner === "tie"
-                      ? ["TIE 적중자에게 지급, P/B 베팅은 푸시 — 원금 그대로", "P/B 베팅을 모두 수거한다", "P/B 베팅에도 절반을 지급한다"]
-                      : ["지는 베팅을 먼저 수거한다 (테이크)", "이긴 베팅부터 지급한다 (페이)", "사용한 카드를 먼저 수거한다"]
-                    ).map((t, i) => <ActionBtn key={i} onClick={() => pickSettleOrder(i)}>{t}</ActionBtn>)}
+                    {settleOrderOpts.map((o, i) => <ActionBtn key={i} onClick={() => pickSettleOrder(o.ok)}>{o.label}</ActionBtn>)}
                   </div>
                 </>
               )}
