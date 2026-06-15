@@ -22,6 +22,7 @@ import {
   thtd, sideLabel, sideColor, dealBtnStyle, useTween,
 } from "@/components/GameUI";
 import StoryFlow from "@/components/StoryFlow";
+import TrainingMode from "@/components/TrainingMode";
 
 // ═══════════ 메인 ═══════════
 export default function BaccaratDealerTrainerV3() {
@@ -75,6 +76,7 @@ export default function BaccaratDealerTrainerV3() {
   const [exitConfirm, setExitConfirm] = useState(false);
   const [showGlossary, setShowGlossary] = useState(false);
   const [showStory, setShowStory] = useState(false);
+  const [showTraining, setShowTraining] = useState(false);
   const prevPhaseRef = useRef("intro");
   useEffect(() => { setSfxOn(soundOn); }, [soundOn]);
   useEffect(() => {
@@ -883,6 +885,11 @@ ${transcript}
       <div style={{ maxWidth: 560, margin: "0 auto" }}>
         {/* 나가기 확인 */}
         {showStory && <StoryFlow onDone={() => setShowStory(false)} />}
+        {showTraining && (
+          <div style={{ position: "fixed", inset: 0, background: "#0d0a07", zIndex: 65, overflowY: "auto" }}>
+            <TrainingMode onBack={() => setShowTraining(false)} />
+          </div>
+        )}
         {showGlossary && <GlossaryModal onClose={() => setShowGlossary(false)} />}
         {exitConfirm && (
           <div onClick={() => setExitConfirm(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.62)", zIndex: 60, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
