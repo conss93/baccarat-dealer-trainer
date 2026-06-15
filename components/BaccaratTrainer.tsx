@@ -21,6 +21,7 @@ import {
   ActionBtn, PanelTitle, StepBar, GlossaryModal, GlossaryToggle,
   thtd, sideLabel, sideColor, dealBtnStyle, useTween,
 } from "@/components/GameUI";
+import StoryFlow from "@/components/StoryFlow";
 
 // ═══════════ 메인 ═══════════
 export default function BaccaratDealerTrainerV3() {
@@ -73,6 +74,7 @@ export default function BaccaratDealerTrainerV3() {
   const [records, setRecords] = useState({});
   const [exitConfirm, setExitConfirm] = useState(false);
   const [showGlossary, setShowGlossary] = useState(false);
+  const [showStory, setShowStory] = useState(false);
   const prevPhaseRef = useRef("intro");
   useEffect(() => { setSfxOn(soundOn); }, [soundOn]);
   useEffect(() => {
@@ -88,6 +90,7 @@ export default function BaccaratDealerTrainerV3() {
         if (local) setRecords(JSON.parse(local));
       } catch (e) { /* 기록 없음 */ }
     })();
+    if (!localStorage.getItem("baccarat-story-seen")) setShowStory(true);
   }, []);
   useEffect(() => {
     const prev = prevPhaseRef.current;
@@ -876,6 +879,7 @@ ${transcript}
       `}</style>
       <div style={{ maxWidth: 560, margin: "0 auto" }}>
         {/* 나가기 확인 */}
+        {showStory && <StoryFlow onDone={() => setShowStory(false)} />}
         {showGlossary && <GlossaryModal onClose={() => setShowGlossary(false)} />}
         {exitConfirm && (
           <div onClick={() => setExitConfirm(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.62)", zIndex: 60, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
@@ -945,7 +949,8 @@ ${transcript}
             </div>
             <div style={{ display: "flex", gap: 10, justifyContent: "center", alignItems: "center" }}>
               <button onClick={startRound} style={{ background: `linear-gradient(180deg, ${GOLD}, #b08c3e)`, color: "#1d1609", border: "1px solid #e8caa0", borderRadius: 999, padding: "12px 32px", fontSize: 15, fontWeight: 800, cursor: "pointer" }}>근무 시작</button>
-              <button onClick={() => setShowGlossary(true)} style={{ background: "rgba(246,241,227,.06)", color: GOLD, border: `1px solid ${GOLD}55`, borderRadius: 999, padding: "12px 20px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>📖 용어 사전</button>
+              <button onClick={() => setShowStory(true)} style={{ background: "rgba(246,241,227,.06)", color: IVORY, border: "1px solid rgba(246,241,227,.22)", borderRadius: 999, padding: "12px 20px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>📖 스토리 보기</button>
+              <button onClick={() => setShowGlossary(true)} style={{ background: "rgba(246,241,227,.06)", color: GOLD, border: `1px solid ${GOLD}55`, borderRadius: 999, padding: "12px 20px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>📚 용어 사전</button>
             </div>
           </div>
         )}
