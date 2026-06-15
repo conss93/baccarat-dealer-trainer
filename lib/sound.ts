@@ -39,36 +39,45 @@ function sfxNoise(dur, opt: any = {}) {
   src.start(t0);
 }
 
-// ── 앰비언트 (스토리 전용) ──
+// ── 앰비언트 (스토리 전용 — 미니멀 피아노) ──
 let _ambGain = null;
 let _ambOscs = [];
 let _ambShimmer = null;
+let _ambNoteIdx = 0;
+const _MELODY = [330, 392, 440, 392, 330, 294];
 
 export function storyAmbientStart() {
   storyAmbientStop(0);
   const c = ac(); if (!c || !_sfxOn) return;
   const master = c.createGain();
   master.gain.setValueAtTime(0, c.currentTime);
-  master.gain.linearRampToValueAtTime(0.12, c.currentTime + 2.5);
+  master.gain.linearRampToValueAtTime(1, c.currentTime + 1.2);
   master.connect(c.destination);
   _ambGain = master;
-  [[62, 1], [64.5, 0.65], [124, 0.22]].forEach(([f, v]) => {
-    const o = c.createOscillator(); const g = c.createGain();
-    o.type = "sine"; o.frequency.value = f; g.gain.value = v;
-    o.connect(g); g.connect(master); o.start();
-    _ambOscs.push(o);
-  });
-  const ping = () => {
+  _ambNoteIdx = 0;
+
+  const playNote = () => {
     if (!_ambGain) return;
+    const freq = _MELODY[_ambNoteIdx % _MELODY.length];
+    _ambNoteIdx++;
     const o = c.createOscillator(); const g = c.createGain();
-    o.type = "sine"; o.frequency.value = 1400 + Math.random() * 2200;
-    g.gain.setValueAtTime(0.001, c.currentTime);
-    g.gain.linearRampToValueAtTime(0.07, c.currentTime + 0.14);
-    g.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 1.9);
-    o.connect(g); g.connect(master); o.start(); o.stop(c.currentTime + 1.9);
-    _ambShimmer = setTimeout(ping, 1600 + Math.random() * 3200);
+    o.type = "triangle"; o.frequency.value = freq;
+    g.gain.setValueAtTime(0, c.currentTime);
+    g.gain.linearRampToValueAtTime(0.1, c.currentTime + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.04, c.currentTime + 0.5);
+    g.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 1.6);
+    o.connect(g); g.connect(master); o.start(); o.stop(c.currentTime + 1.6);
+    _ambOscs.push(o);
+    const o2 = c.createOscillator(); const g2 = c.createGain();
+    o2.type = "sine"; o2.frequency.value = freq * 2;
+    g2.gain.setValueAtTime(0, c.currentTime);
+    g2.gain.linearRampToValueAtTime(0.022, c.currentTime + 0.01);
+    g2.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.8);
+    o2.connect(g2); g2.connect(master); o2.start(); o2.stop(c.currentTime + 0.8);
+    _ambOscs.push(o2);
+    _ambShimmer = setTimeout(playNote, 1350 + Math.random() * 180);
   };
-  _ambShimmer = setTimeout(ping, 900 + Math.random() * 1800);
+  _ambShimmer = setTimeout(playNote, 700);
 }
 
 export function storyAmbientStop(fadeMs = 600) {
