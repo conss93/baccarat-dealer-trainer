@@ -247,25 +247,35 @@ function CommissionMode({onBack}) {
   );
 }
 
-export default function TrainingMode({onBack}) {
-  const [screen,setScreen] = useState("select");
-  if(screen==="cardDraw") return <CardDrawMode onBack={()=>setScreen("select")}/>;
-  if(screen==="commission") return <CommissionMode onBack={()=>setScreen("select")}/>;
-  return (
-    <div style={{padding:"20px 16px"}}>
-      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:6}}>
-        <button onClick={onBack} style={{background:"none",border:"none",color:MUT,cursor:"pointer",fontSize:13,padding:0}}>← 인트로</button>
+export default function TrainingMode({ onBack, backRef }) {
+  const [screen, setScreen] = useState("select");
+
+  useEffect(() => {
+    if (!backRef) return;
+    backRef.current = () => {
+      if (screen !== "select") setScreen("select");
+      else onBack();
+    };
+  }, [screen, onBack]);
+
+  let content;
+  if (screen === "cardDraw") content = <CardDrawMode onBack={() => setScreen("select")} />;
+  else if (screen === "commission") content = <CommissionMode onBack={() => setScreen("select")} />;
+  else content = (
+    <div style={{ padding: "20px 16px" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
+        <button onClick={onBack} style={{ background: "none", border: "none", color: MUT, cursor: "pointer", fontSize: 13, padding: 0 }}>← 인트로</button>
       </div>
-      <div style={{fontSize:13,letterSpacing:"0.18em",color:GOLD,fontWeight:700,marginBottom:6}}>훈련 모드</div>
-      <div style={{fontSize:13,color:MUT,marginBottom:22,lineHeight:1.6}}>점수 없이 반복 연습합니다. 편하게 틀려보세요.</div>
-      <div style={{display:"flex",flexDirection:"column",gap:12}}>
-        <button onClick={()=>setScreen("cardDraw")} style={{padding:"20px 18px",background:"rgba(246,241,227,.05)",border:`1px solid ${GOLD}44`,borderRadius:14,textAlign:"left",cursor:"pointer",color:IVORY,fontFamily:"inherit"}}>
-          <div style={{fontSize:14,fontWeight:800,marginBottom:6}}>🃏 카드 드로우 연습</div>
-          <div style={{fontSize:12.5,color:MUT,lineHeight:1.55}}>딜링 순서 · 3rd 카드 룰 판단 · 승자 선언</div>
+      <div style={{ fontSize: 13, letterSpacing: "0.18em", color: GOLD, fontWeight: 700, marginBottom: 6 }}>훈련 모드</div>
+      <div style={{ fontSize: 13, color: MUT, marginBottom: 22, lineHeight: 1.6 }}>점수 없이 반복 연습합니다. 편하게 틀려보세요.</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <button onClick={() => setScreen("cardDraw")} style={{ padding: "20px 18px", background: "rgba(246,241,227,.05)", border: `1px solid ${GOLD}44`, borderRadius: 14, textAlign: "left", cursor: "pointer", color: IVORY, fontFamily: "inherit" }}>
+          <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 6 }}>🃏 카드 드로우 연습</div>
+          <div style={{ fontSize: 12.5, color: MUT, lineHeight: 1.55 }}>딜링 순서 · 3rd 카드 룰 판단 · 승자 선언</div>
         </button>
-        <button onClick={()=>setScreen("commission")} style={{padding:"20px 18px",background:"rgba(246,241,227,.05)",border:`1px solid ${GOLD}44`,borderRadius:14,textAlign:"left",cursor:"pointer",color:IVORY,fontFamily:"inherit"}}>
-          <div style={{fontSize:14,fontWeight:800,marginBottom:6}}>💰 커미션 계산 연습</div>
-          <div style={{fontSize:12.5,color:MUT,lineHeight:1.55}}>뱅커 적중 · 5% 커미션 빠르게 계산하기</div>
+        <button onClick={() => setScreen("commission")} style={{ padding: "20px 18px", background: "rgba(246,241,227,.05)", border: `1px solid ${GOLD}44`, borderRadius: 14, textAlign: "left", cursor: "pointer", color: IVORY, fontFamily: "inherit" }}>
+          <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 6 }}>💰 커미션 계산 연습</div>
+          <div style={{ fontSize: 12.5, color: MUT, lineHeight: 1.55 }}>뱅커 적중 · 5% 커미션 빠르게 계산하기</div>
         </button>
       </div>
     </div>
