@@ -187,7 +187,7 @@ export default function StoryFlow({ onDone }) {
     audioRef.current = audio;
     audio.play().catch(() => {});
     let v = 0;
-    const fi = setInterval(() => { v = Math.min(v + 0.04, 0.65); audio.volume = v; if (v >= 0.65) clearInterval(fi); }, 80);
+    const fi = setInterval(() => { v = Math.min(v + 0.02, 0.32); audio.volume = v; if (v >= 0.65) clearInterval(fi); }, 80);
     return () => { clearInterval(fi); audio.pause(); audioRef.current = null; };
   }, []);
 
