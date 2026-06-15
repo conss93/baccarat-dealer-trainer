@@ -977,46 +977,47 @@ ${transcript}
 
         {/* 인트로 */}
         {phase === "intro" && (
-          <div style={{ background: "rgba(246,241,227,.04)", border: "1px solid rgba(210,171,92,.3)", borderRadius: 16, padding: "26px 20px", textAlign: "center" }}>
-            <div style={{ fontSize: 40 }}>🂡</div>
-            <h2 style={{ margin: "8px 0 8px", fontSize: 18 }}>딜러석에 오신 것을 환영합니다</h2>
-            <p style={{ color: MUT, fontSize: 13.5, lineHeight: 1.7, maxWidth: 440, margin: "0 auto 18px" }}>
-              베팅 감시부터 딜링, 3rd 카드 룰, 칩 리딩, 테이크 & 페이 컷팅, 커미션 정산, AI 손님 응대까지 — 딜러 1인칭 시점으로 전 과정을 수행합니다.
-              테이블 한도 {won(TABLE_MIN)} ~ {won(TABLE_MAX)}.
+          <div style={{ background: "rgba(246,241,227,.04)", border: "1px solid rgba(210,171,92,.3)", borderRadius: 16, padding: "20px 16px", textAlign: "center" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 4 }}>
+              <span style={{ fontSize: 26 }}>🂡</span>
+              <h2 style={{ margin: 0, fontSize: 17 }}>딜러석에 오신 것을 환영합니다</h2>
+            </div>
+            <p style={{ color: MUT, fontSize: 12.5, lineHeight: 1.6, margin: "4px auto 14px", maxWidth: 400 }}>
+              한도 {won(TABLE_MIN)} ~ {won(TABLE_MAX)} · 베팅 감시 · 딜링 · 3rd 카드 룰 · 정산 · AI 응대
             </p>
-            <div style={{ marginBottom: 14 }}>
-              <div style={{ fontSize: 11.5, color: MUT, marginBottom: 7 }}>모드</div>
-              <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
-                {[["practice", "연습 — 금액 표시 · 객관식 정산"], ["real", "실전 — 칩 리딩 · 수동 컷팅"]].map(([m, label]) => (
-                  <button key={m} onClick={() => setMode(m)} style={{ flex: 1, maxWidth: 220, padding: "11px 8px", borderRadius: 10, fontWeight: 800, fontSize: 12.5, cursor: "pointer", fontFamily: "inherit", lineHeight: 1.45, background: mode === m ? `linear-gradient(180deg, ${GOLD}, #b08c3e)` : "rgba(246,241,227,.06)", color: mode === m ? "#1d1609" : IVORY, border: mode === m ? "1px solid #e8caa0" : "1px solid rgba(246,241,227,.2)" }}>{label}</button>
+            <div style={{ display: "flex", gap: 10, alignItems: "center", justifyContent: "center", marginBottom: 12, flexWrap: "wrap" }}>
+              <div style={{ display: "flex", gap: 6 }}>
+                {[["practice", "연습"], ["real", "실전"]].map(([m, label]) => (
+                  <button key={m} onClick={() => setMode(m)} style={{ padding: "8px 14px", borderRadius: 8, fontWeight: 800, fontSize: 12.5, cursor: "pointer", fontFamily: "inherit", background: mode === m ? `linear-gradient(180deg, ${GOLD}, #b08c3e)` : "rgba(246,241,227,.06)", color: mode === m ? "#1d1609" : IVORY, border: mode === m ? "1px solid #e8caa0" : "1px solid rgba(246,241,227,.2)" }}>{label}</button>
                 ))}
               </div>
-            </div>
-            <div style={{ marginBottom: 18 }}>
-              <div style={{ fontSize: 11.5, color: MUT, marginBottom: 7 }}>테이블 손님 수</div>
-              <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
+              <div style={{ width: 1, height: 28, background: "rgba(246,241,227,.15)" }} />
+              <div style={{ display: "flex", gap: 5 }}>
                 {[3, 4, 5, 6].map((k) => (
-                  <button key={k} onClick={() => setCustCount(k)} style={{ width: 42, height: 42, borderRadius: 999, fontWeight: 800, fontSize: 15, cursor: "pointer", fontFamily: "inherit", background: custCount === k ? `linear-gradient(180deg, ${GOLD}, #b08c3e)` : "rgba(246,241,227,.06)", color: custCount === k ? "#1d1609" : IVORY, border: custCount === k ? "1px solid #e8caa0" : "1px solid rgba(246,241,227,.2)" }}>{k}</button>
+                  <button key={k} onClick={() => setCustCount(k)} style={{ width: 36, height: 36, borderRadius: 999, fontWeight: 800, fontSize: 14, cursor: "pointer", fontFamily: "inherit", background: custCount === k ? `linear-gradient(180deg, ${GOLD}, #b08c3e)` : "rgba(246,241,227,.06)", color: custCount === k ? "#1d1609" : IVORY, border: custCount === k ? "1px solid #e8caa0" : "1px solid rgba(246,241,227,.2)" }}>{k}</button>
                 ))}
+                <span style={{ fontSize: 11, color: MUT, alignSelf: "center", marginLeft: 2 }}>명</span>
               </div>
             </div>
-            <div style={{ fontSize: 12.5, marginBottom: 16, minHeight: 18 }}>
+            <div style={{ fontSize: 12, marginBottom: 14, minHeight: 16 }}>
               {(() => {
                 const r = records[`${mode}-${custCount}`];
                 return r
-                  ? <span style={{ color: GOLD }}>🏆 {mode === "real" ? "실전" : "연습"} · {custCount}인 최고 기록 — <b>{r.score}점</b> <span style={{ color: MUT }}>(정확도 {r.acc}%)</span></span>
-                  : <span style={{ color: MUT }}>이 조합의 기록이 아직 없습니다 — 첫 기록을 세워 보세요</span>;
+                  ? <span style={{ color: GOLD }}>🏆 최고 {r.score}점 <span style={{ color: MUT }}>· 정확도 {r.acc}%</span></span>
+                  : <span style={{ color: MUT }}>기록 없음 — 첫 기록을 세워 보세요</span>;
               })()}
             </div>
-            <div style={{ display: "flex", gap: 10, justifyContent: "center", alignItems: "center" }}>
-              <button onClick={() => startRound()} style={{ background: `linear-gradient(180deg, ${GOLD}, #b08c3e)`, color: "#1d1609", border: "1px solid #e8caa0", borderRadius: 999, padding: "12px 32px", fontSize: 15, fontWeight: 800, cursor: "pointer" }}>근무 시작</button>
-              <button onClick={() => startRound(true)} style={{ background: "rgba(210,171,92,.12)", color: GOLD, border: `1px solid ${GOLD}55`, borderRadius: 999, padding: "10px 24px", fontSize: 12.5, fontWeight: 700, cursor: "pointer", width: "100%", maxWidth: 280 }}>🧭 가이드 보며 시작</button>
-              <button onClick={() => setShowStory(true)} style={{ background: "rgba(246,241,227,.06)", color: IVORY, border: "1px solid rgba(246,241,227,.22)", borderRadius: 999, padding: "12px 20px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>📖 스토리 보기</button>
-              <button onClick={() => setShowGlossary(true)} style={{ background: "rgba(246,241,227,.06)", color: GOLD, border: `1px solid ${GOLD}55`, borderRadius: 999, padding: "12px 20px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>📚 용어 사전</button>
+            <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+              <button onClick={() => startRound()} style={{ flex: 1, background: `linear-gradient(180deg, ${GOLD}, #b08c3e)`, color: "#1d1609", border: "1px solid #e8caa0", borderRadius: 10, padding: "13px 8px", fontSize: 15, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>근무 시작</button>
+              <button onClick={() => startRound(true)} style={{ flex: 1, background: "rgba(210,171,92,.12)", color: GOLD, border: `1px solid ${GOLD}55`, borderRadius: 10, padding: "13px 8px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>🧭 가이드 시작</button>
+            </div>
+            <div style={{ display: "flex", gap: 6 }}>
+              <button onClick={() => setShowTraining(true)} style={{ flex: 1, background: "rgba(246,241,227,.06)", color: IVORY, border: "1px solid rgba(246,241,227,.22)", borderRadius: 8, padding: "9px 4px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>🎓 훈련 모드</button>
+              <button onClick={() => setShowStory(true)} style={{ flex: 1, background: "rgba(246,241,227,.06)", color: IVORY, border: "1px solid rgba(246,241,227,.22)", borderRadius: 8, padding: "9px 4px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>📖 스토리</button>
+              <button onClick={() => setShowGlossary(true)} style={{ flex: 1, background: "rgba(246,241,227,.06)", color: GOLD, border: `1px solid ${GOLD}55`, borderRadius: 8, padding: "9px 4px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>📚 용어 사전</button>
             </div>
           </div>
         )}
-
         {phase !== "intro" && (
           <>
             {/* ─── 씬 ─── */}
