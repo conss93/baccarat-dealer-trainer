@@ -131,7 +131,7 @@ export default function BaccaratDealerTrainerV3() {
         ? "이긴 손님에게 배당금을 지급합니다.\n\n• 각 손님 배당 항목을 탭해서 지급을 완료하세요.\n• PLAYER·TIE 배당은 1:1, TIE는 보통 8:1 (이 테이블은 1:1 환급).\n• BANKER 배당은 커미션 5% 공제 후 0.95:1입니다."
         : "실전 모드 페이입니다.\n\n• 각 손님에게 칩을 올바르게 구성해 지급하세요.\n• 금액이 맞으면 자동으로 다음 단계로 넘어갑니다.");
     }
-  }, [phase]);
+  }, [phase, mode]);
 
   useEffect(() => {
     if (!bettingDone) return;
