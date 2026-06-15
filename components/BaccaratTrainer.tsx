@@ -19,7 +19,7 @@ import { PERSONAS, makeViolation, NEUTRAL_LINES } from "@/lib/personas";
 import {
   Chip, ChipStackVisual, SpreadGroups, MiniStack, CardView,
   ActionBtn, PanelTitle, StepBar, GlossaryModal, GlossaryToggle,
-  thtd, sideLabel, sideColor, dealBtnStyle, useTween,
+  thtd, sideLabel, sideColor, dealBtnStyle, useTween, GuideBubble,
 } from "@/components/GameUI";
 import StoryFlow from "@/components/StoryFlow";
 import TrainingMode from "@/components/TrainingMode";
@@ -77,6 +77,9 @@ export default function BaccaratDealerTrainerV3() {
   const [showGlossary, setShowGlossary] = useState(false);
   const [showStory, setShowStory] = useState(false);
   const [showTraining, setShowTraining] = useState(false);
+  const [guideMsg, setGuideMsg] = useState(null);
+  const guideModeRef = useRef(false);
+  const guideDoneRef = useRef(new Set());
   const prevPhaseRef = useRef("intro");
   useEffect(() => { setSfxOn(soundOn); }, [soundOn]);
   useEffect(() => {
@@ -100,6 +103,41 @@ export default function BaccaratDealerTrainerV3() {
     if (phase === "intro" || phase === prev) return;
     SFX.phase();
   }, [phase]);
+
+  // ── 가이드 메시지 (phase 변화 시) ──
+  useEffect(() => {
+    if (phase === "betting") {
+      showGuide("betting", "베팅 감시", mode === "practice"
+        ? "손님들이 베팅을 시작합니다.\n\n• 각 손님의 베팅 금액과 위치를 확인하세요.\n• 테이블 한도(20만~3,000만)를 초과하거나, 현금을 그대로 올리거나, 규정에 없는 칩을 사용하면 규정 위반입니다.\n• 손님 이름을 누르면 정보와 '규정 위반 지적' 버튼이 나타납니다.\n• 베팅이 완료되면 「No More Bets」 버튼을 눌러 마감하세요."
+        : "손님들이 베팅을 시작합니다.\n\n• 실전 모드에서는 금액이 표시되지 않습니다. 칩의 색과 개수로 금액을 읽어야 합니다.\n• 손님 이름을 눌러 규정 위반을 지적할 수 있습니다.\n• 베팅이 완료되면 「No More Bets」 버튼으로 마감하세요.");
+    } else if (phase === "lateBet") {
+      showGuide("lateBet", "늦은 베팅 — No More Bets 이후", "\"No More Bets\"를 선언한 뒤 손님이 칩을 밀어 넣으려 합니다.\n\n• 반드시 거절해야 합니다. 마감 이후 칩 한 개도 받을 수 없습니다.\n• 「거절 (No more bets, sir.)」 버튼을 누르세요.\n• 규칙을 어기고 받아주면 감점입니다.");
+    } else if (phase === "dealing") {
+      showGuide("dealing", "딜링 순서", "카드를 슈에서 꺼내 딜링합니다.\n\n• 순서는 반드시 P → B → P → B (플레이어 먼저)\n• 아래에 「Player에게」 「Banker에게」 버튼이 나타납니다.\n• 잘못된 순서로 딜링하면 감점이지만 카드는 올바른 위치로 교정됩니다.");
+    } else if (phase === "openPlayerCards" || phase === "callInitial") {
+      showGuide("callInitial", "초기 핸드 콜 & 내추럴", "카드 4장이 모두 배분되었습니다.\n\n• 「카드 오픈」 후 플레이어와 뱅커의 합을 확인하세요.\n• 어느 쪽이든 합이 8 또는 9면 내추럴(Natural)입니다. 내추럴이 나오면 추가 딜링 없이 바로 결과를 선언합니다.\n• 콜 옵션에서 합계를 정확히 선택하세요.");
+    } else if (phase === "playerThird" || phase === "openPlayerThird") {
+      showGuide("playerThird", "플레이어 3rd 카드 룰", "플레이어 합이 0~5이면 한 장을 더 받습니다.\n합이 6~7이면 스탠드(추가 없음).\n\n• 내추럴(8·9)은 이미 처리되었습니다.\n• 「Player에게 3rd」 또는 「Player 스탠드」를 선택하세요.");
+    } else if (phase === "bankerThird" || phase === "openBankerThird") {
+      showGuide("bankerThird", "뱅커 3rd 카드 룰", "뱅커의 추가 드로우는 플레이어의 3rd 카드 값에 따라 결정됩니다.\n\n• 플레이어가 스탠드했으면: 뱅커 합 0~5 → 드로우, 6~7 → 스탠드\n• 플레이어가 3rd를 받았으면: 상세 룰표가 적용됩니다 (힌트 버튼 참고)\n• 아래 버튼으로 드로우/스탠드를 선택하세요.");
+    } else if (phase === "callWinner") {
+      showGuide("callWinner", "승자 선언", "모든 카드가 공개되었습니다.\n\n• PLAYER, BANKER, TIE 중 승자를 선언하세요.\n• 합이 같으면 TIE(타이)입니다.\n• 올바른 승자를 선택하면 정산 단계로 넘어갑니다.");
+    } else if (phase === "settleOrder") {
+      showGuide("settleOrder", mode === "practice" ? "정산 순서 (연습)" : "정산 순서 (실전)", mode === "practice"
+        ? "승패가 결정되면 정산 순서에 따라 버튼을 누릅니다.\n\n• 먼저 진 쪽 칩을 테이크(수거)합니다.\n• 그다음 이긴 쪽에 페이(지불)합니다.\n• BANKER가 이긴 경우 커미션 5%를 공제한 금액을 지급합니다."
+        : "실전 모드 정산입니다.\n\n• 진 쪽 칩을 테이크(수거)한 뒤, 이긴 쪽에 페이합니다.\n• BANKER 승리 시 커미션 5% 공제 후 지급.\n• 칩을 직접 컷팅해 올바른 금액을 구성해야 합니다.");
+    } else if (phase === "payout" || phase === "payWB") {
+      showGuide("payout", "페이 — 칩 지급", mode === "practice"
+        ? "이긴 손님에게 배당금을 지급합니다.\n\n• 각 손님 배당 항목을 탭해서 지급을 완료하세요.\n• PLAYER·TIE 배당은 1:1, TIE는 보통 8:1 (이 테이블은 1:1 환급).\n• BANKER 배당은 커미션 5% 공제 후 0.95:1입니다."
+        : "실전 모드 페이입니다.\n\n• 각 손님에게 칩을 올바르게 구성해 지급하세요.\n• 금액이 맞으면 자동으로 다음 단계로 넘어갑니다.");
+    }
+  }, [phase]);
+
+  useEffect(() => {
+    if (!bettingDone) return;
+    showGuide("bettingDone", "베팅 마감 준비", "모든 손님의 베팅이 완료되었습니다.\n\n• 지금이 마지막 점검 타이밍입니다. 규정 위반이 보이면 지금 지적하세요.\n• 이상이 없으면 「No More Bets」를 눌러 마감하세요.\n• 마감 후에는 베팅 변경이 불가합니다.");
+  }, [bettingDone]);
+
   // 응대
   const [chatCust, setChatCust] = useState(null);
   const [chatLog, setChatLog] = useState([]);
@@ -166,8 +204,20 @@ export default function BaccaratDealerTrainerV3() {
   }
   function moveArm(pos, label) { setArmOn(true); setArmTarget(pos); setArmLabel(label || ""); }
 
+  function showGuide(key, title, body) {
+    if (!guideModeRef.current) return;
+    if (guideDoneRef.current.has(key)) return;
+    guideDoneRef.current.add(key);
+    setGuideMsg({ title, body });
+  }
+
   // ── 라운드 시작 ──
-  function startRound() {
+  function startRound(withGuide = false) {
+    const storageKey = `guide-${mode}-seen`;
+    const forceGuide = withGuide || !localStorage.getItem(storageKey);
+    guideModeRef.current = forceGuide;
+    guideDoneRef.current = new Set();
+    if (forceGuide) localStorage.setItem(storageKey, "1");
     ac(); // 모바일 오디오 잠금 해제 (사용자 제스처 내)
     clearTimers();
     const picked = shuffle(PERSONAS).slice(0, custCount);
@@ -891,6 +941,7 @@ ${transcript}
           </div>
         )}
         {showGlossary && <GlossaryModal onClose={() => setShowGlossary(false)} />}
+        {guideMsg && <GuideBubble title={guideMsg.title} body={guideMsg.body} onDismiss={() => setGuideMsg(null)} />}
         {exitConfirm && (
           <div onClick={() => setExitConfirm(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.62)", zIndex: 60, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
             <div onClick={(e) => e.stopPropagation()} style={{ background: "#241c14", border: `1px solid ${GOLD}66`, borderRadius: 14, padding: "20px 18px", maxWidth: 320, width: "100%", textAlign: "center", boxShadow: "0 12px 32px rgba(0,0,0,.6)" }}>

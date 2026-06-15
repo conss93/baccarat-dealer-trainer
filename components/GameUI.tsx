@@ -234,3 +234,19 @@ export function useTween(target) {
   }, [target.x, target.y]);
   return pos;
 }
+
+export const GuideBubble = ({ title, body, onDismiss }) => (
+  <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.72)", zIndex: 55, display: "flex", alignItems: "flex-end", padding: "0 16px 28px" }}>
+    <div style={{ width: "100%", maxWidth: 560, margin: "0 auto", background: "#1e1710", border: `1px solid ${GOLD}55`, borderRadius: 16, padding: "18px 16px 14px" }}>
+      <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 10 }}>
+        <div style={{ fontSize: 22, flexShrink: 0 }}>👨‍💼</div>
+        <div>
+          <div style={{ fontSize: 10, color: GOLD, fontWeight: 700, letterSpacing: "0.1em" }}>오반장</div>
+          <div style={{ fontSize: 14.5, fontWeight: 800, color: IVORY }}>{title}</div>
+        </div>
+      </div>
+      <div style={{ fontSize: 13.5, color: "rgba(246,241,227,.85)", lineHeight: 1.85, marginBottom: 14, whiteSpace: "pre-line" }}>{body}</div>
+      <button onClick={onDismiss} style={{ width: "100%", padding: "13px", background: `linear-gradient(180deg, ${GOLD}, #b08c3e)`, color: "#1d1609", border: "none", borderRadius: 10, fontSize: 14, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>알겠습니다</button>
+    </div>
+  </div>
+);
