@@ -181,9 +181,21 @@ export default function StoryFlow({ onDone }) {
   const full = scene.text;
 
   useEffect(() => {
-    storyAmbientStart();
-    return () => storyAmbientStop();
+    if (!getSfxOn()) return;
+    const audio = new Audio("/story-music.mp3");
+    audio.loop = true; audio.volume = 0;
+    audioRef.current = audio;
+    audio.play().catch(() => {});
+    let v = 0;
+    const fi = setInterval(() => { v = Math.min(v + 0.04, 0.65); audio.volume = v; if (v >= 0.65) clearInterval(fi); }, 80);
+    return () => { clearInterval(fi); audio.pause(); audioRef.current = null; };
   }, []);
+
+  const fadeOutAudio = (ms = 500) => {
+    const audio = audioRef.current; if (!audio) return;
+    const step = audio.volume / (ms / 30);
+    const fo = setInterval(() => { audio.volume = Math.max(audio.volume - step, 0); if (audio.volume <= 0) { clearInterval(fo); audio.pause(); } }, 30);
+  };
 
   useEffect(() => {
     if (isFirstScene.current) { isFirstScene.current = false; return; }
