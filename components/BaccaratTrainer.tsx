@@ -190,6 +190,7 @@ export default function BaccaratDealerTrainerV3() {
         const side = c.betSide(); const bet = c.betAmt();
         setBet(c.id, { side, bet });
         showBubble(c.seat, mode === "practice" ? `${sideLabel[side]} ${won(bet)}` : `${sideLabel[side]}에 베팅`, "normal", 1500);
+        SFX.murmur();
       }, 500 + i * 750);
     });
     const baseEnd = 500 + custCount * 750;
@@ -562,6 +563,7 @@ export default function BaccaratDealerTrainerV3() {
   // ── 어림 집기: 꾹 누르는 동안 칩이 모임 (개수 비표시), 놓으면 현재 스텝의 존으로 ──
   function grabStart(denom) {
     if (grabRef.current) return;
+    SFX.chipGrab();
     const st = { denom, count: 1, timer: setInterval(() => { st.count = Math.min(st.count + 1, 60); }, 150) };
     grabRef.current = st;
     setGrab({ denom });
@@ -582,6 +584,7 @@ export default function BaccaratDealerTrainerV3() {
   // ── 그룹 탭: 컷(스택) 탭 = 묶음째, 스프레드 탭 = 1개 ──
   function tapPayGroup(denom, g) {
     const nSub = g.kind === "spread" ? 1 : g.n;
+    if (g.kind === "spread") SFX.chipClick(); else SFX.chipGrab();
     setPayWB((wb) => {
       if (!wb) return wb;
       if (wb.step === "pay") return { ...wb, zone: mergeRemove(wb.zone, denom, nSub) };
