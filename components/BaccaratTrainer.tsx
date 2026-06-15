@@ -1009,7 +1009,7 @@ ${transcript}
               })()}
             </div>
             <div style={{ display: "flex", gap: 10, justifyContent: "center", alignItems: "center" }}>
-              <button onClick={startRound} style={{ background: `linear-gradient(180deg, ${GOLD}, #b08c3e)`, color: "#1d1609", border: "1px solid #e8caa0", borderRadius: 999, padding: "12px 32px", fontSize: 15, fontWeight: 800, cursor: "pointer" }}>근무 시작</button>
+              <button onClick={() => startRound()} style={{ background: `linear-gradient(180deg, ${GOLD}, #b08c3e)`, color: "#1d1609", border: "1px solid #e8caa0", borderRadius: 999, padding: "12px 32px", fontSize: 15, fontWeight: 800, cursor: "pointer" }}>근무 시작</button>
               <button onClick={() => startRound(true)} style={{ background: "rgba(210,171,92,.12)", color: GOLD, border: `1px solid ${GOLD}55`, borderRadius: 999, padding: "10px 24px", fontSize: 12.5, fontWeight: 700, cursor: "pointer", width: "100%", maxWidth: 280 }}>🧭 가이드 보며 시작</button>
               <button onClick={() => setShowStory(true)} style={{ background: "rgba(246,241,227,.06)", color: IVORY, border: "1px solid rgba(246,241,227,.22)", borderRadius: 999, padding: "12px 20px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>📖 스토리 보기</button>
               <button onClick={() => setShowGlossary(true)} style={{ background: "rgba(246,241,227,.06)", color: GOLD, border: `1px solid ${GOLD}55`, borderRadius: 999, padding: "12px 20px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>📚 용어 사전</button>
