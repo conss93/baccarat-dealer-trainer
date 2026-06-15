@@ -4,6 +4,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { GOLD, IVORY, MUT, BLUE, RED } from "@/lib/constants";
 import { chipBreakdown, chipMeta, spreadPattern, won } from "@/lib/utils";
+import { GLOSSARY } from "@/lib/glossary";
 
 export const Chip = ({ meta, w, h }) => (
   <div style={{ width: w, height: h, borderRadius: 999, background: meta.c, border: `${Math.max(1, h * 0.18)}px dashed rgba(255,255,255,.55)`, outline: `1px solid ${meta.edge}`, boxSizing: "border-box", boxShadow: "0 1px 1.5px rgba(0,0,0,.45)" }} />
@@ -161,6 +162,51 @@ export const StepBar = ({ steps, cur }) => (
     ))}
   </div>
 );
+
+
+export const GlossaryModal = ({ onClose }) => (
+  <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.65)", zIndex: 60, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+    <div onClick={(e) => e.stopPropagation()} style={{ background: "#1e1710", border: `1px solid ${GOLD}55`, borderRadius: 16, padding: "18px 16px", width: "100%", maxWidth: 500, maxHeight: "80vh", display: "flex", flexDirection: "column" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+        <div style={{ fontSize: 11.5, letterSpacing: "0.18em", color: GOLD, fontWeight: 700 }}>GLOSSARY · 용어 사전</div>
+        <button onClick={onClose} style={{ background: "none", border: "none", color: MUT, cursor: "pointer", fontSize: 16, lineHeight: 1, padding: 0 }}>✕</button>
+      </div>
+      <div style={{ overflowY: "auto", display: "flex", flexDirection: "column", gap: 1 }}>
+        {GLOSSARY.map((g) => (
+          <div key={g.en} style={{ padding: "9px 10px", borderRadius: 8, background: "rgba(246,241,227,.04)" }}>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 7, marginBottom: 3 }}>
+              <span style={{ fontSize: 13.5, fontWeight: 800, color: IVORY }}>{g.ko}</span>
+              <span style={{ fontSize: 10.5, color: GOLD, fontWeight: 700, letterSpacing: "0.04em" }}>{g.en}</span>
+            </div>
+            <div style={{ fontSize: 12.3, color: "rgba(246,241,227,.75)", lineHeight: 1.55 }}>{g.desc}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+);
+
+export const GlossaryToggle = () => {
+  const [open, setOpen] = useState(false);
+  return (
+    <div>
+      <button onClick={() => setOpen(!open)} style={{ background: "none", border: "none", color: GOLD, fontSize: 12.5, fontWeight: 700, cursor: "pointer", padding: 0, fontFamily: "inherit" }}>{open ? "▾" : "▸"} 용어 사전</button>
+      {open && (
+        <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 1, maxHeight: 320, overflowY: "auto" }}>
+          {GLOSSARY.map((g) => (
+            <div key={g.en} style={{ padding: "8px 10px", borderRadius: 8, background: "rgba(246,241,227,.04)" }}>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 7, marginBottom: 2 }}>
+                <span style={{ fontSize: 12.5, fontWeight: 800, color: IVORY }}>{g.ko}</span>
+                <span style={{ fontSize: 10, color: GOLD, fontWeight: 700 }}>{g.en}</span>
+              </div>
+              <div style={{ fontSize: 11.5, color: "rgba(246,241,227,.75)", lineHeight: 1.5 }}>{g.desc}</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
 
 export const thtd = { border: "1px solid rgba(246,241,227,.14)", padding: "4px 8px", textAlign: "center" };
 export const sideLabel = { player: "PLAYER", banker: "BANKER", tie: "TIE" };
