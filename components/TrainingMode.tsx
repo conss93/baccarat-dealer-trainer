@@ -1,7 +1,7 @@
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-nocheck
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { GOLD, IVORY, MUT, RED, BLUE } from "@/lib/constants";
 import { drawCard, cardValue, handTotal, bankerShouldDraw, won } from "@/lib/utils";
 import { CardView } from "@/components/GameUI";
@@ -267,6 +267,14 @@ export default function TrainingMode({onBack}) {
           <div style={{fontSize:14,fontWeight:800,marginBottom:6}}>💰 커미션 계산 연습</div>
           <div style={{fontSize:12.5,color:MUT,lineHeight:1.55}}>뱅커 적중 · 5% 커미션 빠르게 계산하기</div>
         </button>
+      </div>
+    </div>
+  );
+
+  return (
+    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", justifyContent: "center" }}>
+      <div style={{ maxWidth: 480, width: "100%", margin: "0 auto" }}>
+        {content}
       </div>
     </div>
   );

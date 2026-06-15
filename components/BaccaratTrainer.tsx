@@ -80,6 +80,7 @@ export default function BaccaratDealerTrainerV3() {
   const [guideMsg, setGuideMsg] = useState(null);
   const guideModeRef = useRef(false);
   const guideDoneRef = useRef(new Set());
+  const trainingBackRef = useRef(null);
   const prevPhaseRef = useRef("intro");
   useEffect(() => { setSfxOn(soundOn); }, [soundOn]);
   useEffect(() => {
@@ -96,7 +97,20 @@ export default function BaccaratDealerTrainerV3() {
       } catch (e) { /* 기록 없음 */ }
     })();
     if (!localStorage.getItem("baccarat-story-seen")) setShowStory(true);
+    if (typeof window !== "undefined") window.history.pushState({ intercept: true }, "");
   }, []);
+  useEffect(() => {
+    const handleBack = () => {
+      window.history.pushState({ intercept: true }, "");
+      if (showGlossary) { setShowGlossary(false); return; }
+      if (showStory) { setShowStory(false); return; }
+      if (showTraining) { if (trainingBackRef.current) trainingBackRef.current(); return; }
+      if (guideMsg) { setGuideMsg(null); return; }
+      if (phase !== "intro") { setExitConfirm(true); return; }
+    };
+    window.addEventListener("popstate", handleBack);
+    return () => window.removeEventListener("popstate", handleBack);
+  }, [showGlossary, showStory, showTraining, guideMsg, phase]);
   useEffect(() => {
     const prev = prevPhaseRef.current;
     prevPhaseRef.current = phase;
@@ -946,7 +960,7 @@ ${transcript}
         {showStory && <StoryFlow onDone={() => setShowStory(false)} />}
         {showTraining && (
           <div style={{ position: "fixed", inset: 0, background: "#0d0a07", zIndex: 65, overflowY: "auto" }}>
-            <TrainingMode onBack={() => setShowTraining(false)} />
+            <TrainingMode onBack={() => setShowTraining(false)} backRef={trainingBackRef} />
           </div>
         )}
         {showGlossary && <GlossaryModal onClose={() => setShowGlossary(false)} />}
