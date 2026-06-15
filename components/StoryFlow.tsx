@@ -3,6 +3,7 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
 import { GOLD, IVORY, MUT } from "@/lib/constants";
+import { SFX, storyAmbientStart, storyAmbientStop } from "@/lib/sound";
 
 const S1 = () => (
   <svg viewBox="0 0 320 170" style={{ width: "100%", maxHeight: 170, display: "block" }}>
@@ -174,8 +175,20 @@ export default function StoryFlow({ onDone }) {
   const [displayed, setDisplayed] = useState("");
   const [typing, setTyping] = useState(true);
   const timerRef = useRef(null);
+  const isFirstScene = useRef(true);
   const scene = SCENES[idx];
   const full = scene.text;
+
+  useEffect(() => {
+    storyAmbientStart();
+    return () => storyAmbientStop();
+  }, []);
+
+  useEffect(() => {
+    if (isFirstScene.current) { isFirstScene.current = false; return; }
+    SFX.sceneTransition();
+  }, [idx]);
+
   useEffect(() => {
     setDisplayed("");
     setTyping(true);
@@ -183,11 +196,17 @@ export default function StoryFlow({ onDone }) {
     timerRef.current = setInterval(() => {
       i++;
       setDisplayed(full.slice(0, i));
+      SFX.typeTick();
       if (i >= full.length) { clearInterval(timerRef.current); setTyping(false); }
     }, 28);
     return () => clearInterval(timerRef.current);
   }, [idx]);
-  const finish = () => { localStorage.setItem("baccarat-story-seen", "1"); onDone(); };
+  const finish = () => {
+    SFX.storyFinish();
+    storyAmbientStop(500);
+    localStorage.setItem("baccarat-story-seen", "1");
+    setTimeout(() => onDone(), 420);
+  };
   const handleTap = () => {
     if (typing) { clearInterval(timerRef.current); setDisplayed(full); setTyping(false); }
     else if (idx < SCENES.length - 1) { setIdx((n) => n + 1); }
