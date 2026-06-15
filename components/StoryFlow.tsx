@@ -3,7 +3,7 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
 import { GOLD, IVORY, MUT } from "@/lib/constants";
-import { SFX, storyAmbientStart, storyAmbientStop } from "@/lib/sound";
+import { SFX, getSfxOn } from "@/lib/sound";
 
 const S1 = () => (
   <svg viewBox="0 0 320 170" style={{ width: "100%", maxHeight: 170, display: "block" }}>
@@ -176,6 +176,7 @@ export default function StoryFlow({ onDone }) {
   const [typing, setTyping] = useState(true);
   const timerRef = useRef(null);
   const isFirstScene = useRef(true);
+  const audioRef = useRef(null);
   const scene = SCENES[idx];
   const full = scene.text;
 
@@ -203,7 +204,7 @@ export default function StoryFlow({ onDone }) {
   }, [idx]);
   const finish = () => {
     SFX.storyFinish();
-    storyAmbientStop(500);
+    fadeOutAudio(500);
     localStorage.setItem("baccarat-story-seen", "1");
     setTimeout(() => onDone(), 420);
   };

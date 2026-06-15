@@ -3,6 +3,7 @@
 let _ac = null;
 let _sfxOn = true;
 export function setSfxOn(v) { _sfxOn = v; }
+export function getSfxOn() { return _sfxOn; }
 export function ac() {
   if (!_ac) {
     const Ctx = typeof window !== "undefined" && (window.AudioContext || (window as any).webkitAudioContext);
