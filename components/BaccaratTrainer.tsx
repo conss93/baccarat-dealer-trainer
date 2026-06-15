@@ -72,6 +72,7 @@ export default function BaccaratDealerTrainerV3() {
   const grabRef = useRef(null);
   // 사운드 · 기록 · 나가기
   const [soundOn, setSoundOnState] = useState(true);
+  const [showSoundPrompt, setShowSoundPrompt] = useState(true);
   const [records, setRecords] = useState({});
   const [exitConfirm, setExitConfirm] = useState(false);
   const [showGlossary, setShowGlossary] = useState(false);
@@ -957,6 +958,19 @@ ${transcript}
       `}</style>
       <div style={{ maxWidth: 560, margin: "0 auto" }}>
         {/* 나가기 확인 */}
+        {showSoundPrompt && (
+          <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.78)", zIndex: 80, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+            <div style={{ background: "#1e1710", border: `1px solid ${GOLD}55`, borderRadius: 16, padding: "28px 20px", maxWidth: 300, width: "100%", textAlign: "center" }}>
+              <div style={{ fontSize: 32, marginBottom: 12 }}>🔊</div>
+              <div style={{ fontSize: 16, fontWeight: 800, color: IVORY, marginBottom: 8 }}>사운드를 켤까요?</div>
+              <div style={{ fontSize: 13, color: MUT, lineHeight: 1.65, marginBottom: 22 }}>칩 소리, 카드 딜링 효과음,<br />배경 음악이 재생됩니다.</div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button onClick={() => { setSoundOnState(false); setShowSoundPrompt(false); }} style={{ flex: 1, padding: "12px 8px", borderRadius: 10, background: "rgba(246,241,227,.06)", border: "1px solid rgba(246,241,227,.2)", color: MUT, fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>🔇 끄기</button>
+                <button onClick={() => { setSoundOnState(true); setShowSoundPrompt(false); ac(); }} style={{ flex: 1, padding: "12px 8px", borderRadius: 10, background: `linear-gradient(180deg, ${GOLD}, #b08c3e)`, border: "1px solid #e8caa0", color: "#1d1609", fontWeight: 800, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>🔊 켜기</button>
+              </div>
+            </div>
+          </div>
+        )}
         {showStory && <StoryFlow onDone={() => setShowStory(false)} />}
         {showTraining && (
           <div style={{ position: "fixed", inset: 0, background: "#0d0a07", zIndex: 65, overflowY: "auto" }}>
