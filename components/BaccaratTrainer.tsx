@@ -79,8 +79,19 @@ export default function BaccaratDealerTrainerV3() {
   const [showStory, setShowStory] = useState(false);
   const [showTraining, setShowTraining] = useState(false);
   const [guideMsg, setGuideMsg] = useState(null);
+  const [showGuideConfirm, setShowGuideConfirm] = useState(false);
   const guideModeRef = useRef(false);
   const guideDoneRef = useRef(new Set());
+  const tutorialModeRef = useRef(false);
+  const tutorialDeckRef = useRef([]);
+  const TUTORIAL_DECK = [
+    { rank: "A", suit: "♠", color: "#221d18" },
+    { rank: "2", suit: "♥", color: "#b3372f" },
+    { rank: "3", suit: "♣", color: "#221d18" },
+    { rank: "A", suit: "♦", color: "#b3372f" },
+    { rank: "2", suit: "♠", color: "#221d18" },
+    { rank: "6", suit: "♥", color: "#b3372f" },
+  ];
   const trainingBackRef = useRef(null);
   const prevPhaseRef = useRef("intro");
   useEffect(() => { setSfxOn(soundOn); }, [soundOn]);
@@ -241,6 +252,8 @@ export default function BaccaratDealerTrainerV3() {
     const forceGuide = withGuide || !localStorage.getItem(storageKey);
     guideModeRef.current = forceGuide;
     guideDoneRef.current = new Set();
+    tutorialModeRef.current = withGuide;
+    tutorialDeckRef.current = [...TUTORIAL_DECK];
     if (forceGuide) localStorage.setItem(storageKey, "1");
     ac(); // 모바일 오디오 잠금 해제 (사용자 제스처 내)
     clearTimers();
@@ -248,7 +261,10 @@ export default function BaccaratDealerTrainerV3() {
     const custs = picked.map((p, i) => ({ ...p, seat: i, side: null, bet: 0, invalidChip: false }));
     setCustomers(custs); customersRef.current = custs;
     setPCards([]); setBCards([]); setDealtCount(0);
-    setPendingDeal([drawCard(), drawCard(), drawCard(), drawCard()]);
+    const initialCards = withGuide
+      ? TUTORIAL_DECK.slice(0, 4).map((c) => ({ ...c }))
+      : [drawCard(), drawCard(), drawCard(), drawCard()];
+    setPendingDeal(initialCards);
     setResult(null); setBanner(null); setFlash(null); setLock(false);
     setBettingDone(false); setViolation(null); setLateBet(null);
     setBubble(null); bubbleQ.current = []; bubbleBusy.current = false;
@@ -295,21 +311,20 @@ export default function BaccaratDealerTrainerV3() {
     }
     const streamEnd = baseEnd + 900 * (changes + 1);
     // 돌발은 라운드당 최대 1개 (위반 50% / 늦은 베팅은 마감 시 35%, 상호 배타)
-    const hasViolation = Math.random() < 0.5;
-    if (hasViolation) {
-      later(() => {
-        const cs = customersRef.current.filter((c) => c.side);
-        if (!cs.length) return;
-        const c = cs[Math.floor(Math.random() * cs.length)];
-        const v = makeViolation(c);
-        if (v.applyBet) setBet(c.id, { bet: v.applyBet });
-        if (v.invalidChip) setBet(c.id, { invalidChip: true });
-        if (v.cash) setBet(c.id, { cashOnLayout: true });
-        // 위반을 누설하지 않음 — 중립 잡담만. 적발은 딜러의 눈에 달려 있다
-        showBubble(c.seat, NEUTRAL_LINES[Math.floor(Math.random() * NEUTRAL_LINES.length)], "normal", 1700);
-        setViolation(v);
-      }, streamEnd - 300);
-    }
+    const hasViolation = withGuide ? true : Math.random() < 0.5;
+    later(() => {
+      const cs = customersRef.current.filter((c) => c.side);
+      if (!cs.length) return;
+      const c = cs[Math.floor(Math.random() * cs.length)];
+      const v = withGuide
+        ? { ...{ type: "overmax", text: `테이블 맥시멈(3,000만) 초과 베팅`, applyBet: 35000000, fixBet: TABLE_MAX, correct: `"고객님, 테이블 한도가 ${won(TABLE_MAX)}입니다" — 초과분 반환`, fixNote: "한도 초과 시 초과분을 돌려주고 최대 한도까지만 받습니다.", cash: false, invalidChip: false }, cust: c }
+        : makeViolation(c);
+      if (v.applyBet) setBet(c.id, { bet: v.applyBet });
+      if (v.invalidChip) setBet(c.id, { invalidChip: true });
+      if (v.cash) setBet(c.id, { cashOnLayout: true });
+      showBubble(c.seat, NEUTRAL_LINES[Math.floor(Math.random() * NEUTRAL_LINES.length)], "normal", 1700);
+      setViolation(v);
+    }, streamEnd - 300);
     later(() => { setBettingDone(true); }, streamEnd + 700);
     laterBetAllowedRef.current = !hasViolation;
   }
@@ -345,13 +360,14 @@ export default function BaccaratDealerTrainerV3() {
       setViolation((v) => ({ ...v, resolved: true }));
     }
     setBanner({ en: "No More Bets", ko: "베팅 마감" });
-    if (laterBetAllowedRef.current && Math.random() < 0.35) {
+    const forceLateBet = tutorialModeRef.current;
+    if (forceLateBet || (laterBetAllowedRef.current && Math.random() < 0.35)) {
       lockFor(800);
       const cs = customersRef.current;
       const c = cs[Math.floor(Math.random() * cs.length)];
       later(() => {
         showBubble(c.seat, "⚠ 잠깐! 이것도 받아 줘요! (칩을 밀어 넣는다)", "warn", 2400);
-        setLateBetBtnOrder(Math.random() < 0.5);
+        setLateBetBtnOrder(forceLateBet ? true : Math.random() < 0.5);
         setLateBet(c); setPhase("lateBet");
       }, 750);
     } else {
@@ -444,7 +460,7 @@ export default function BaccaratDealerTrainerV3() {
     if (draw === shouldDraw) grade(true, shouldDraw ? "정확 — Player 0~5는 추가 카드" : "정확 — Player 6~7은 스탠드");
     else grade(false, "Player 3rd 룰 오류", `Player 0~5면 무조건 카드, 6~7이면 스탠드 (현재 ${pT})`);
     if (shouldDraw) {
-      const c = drawCard();
+      const c = tutorialModeRef.current ? { ...TUTORIAL_DECK[4] } : drawCard();
       pThirdPendingRef.current = { card: c, value: cardValue(c) };
       setPCards((cards) => [...cards, { ...c, faceDown: true }]);
       moveArm(POS_SHOE, "슈"); SFX.deal(); later(() => moveArm(POS_PZONE, "딜링"), 300);
@@ -470,7 +486,7 @@ export default function BaccaratDealerTrainerV3() {
     if (draw === shouldDraw) grade(true, shouldDraw ? "정확 — Card for Banker" : "정확 — Banker 스탠드");
     else grade(false, "Banker 3rd 룰 오류", ruleText);
     if (shouldDraw) {
-      const c = drawCard();
+      const c = tutorialModeRef.current ? { ...TUTORIAL_DECK[5] } : drawCard();
       const newBCards = [...bCards, { ...c, faceDown: true }];
       bThirdPendingRef.current = { card: c, bFinalTotal: handTotal(newBCards) };
       setBCards(newBCards);
@@ -979,6 +995,24 @@ ${transcript}
         )}
         {showGlossary && <GlossaryModal onClose={() => setShowGlossary(false)} />}
         {guideMsg && <GuideBubble title={guideMsg.title} body={guideMsg.body} onDismiss={() => setGuideMsg(null)} />}
+        {showGuideConfirm && (
+          <div onClick={() => setShowGuideConfirm(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.72)", zIndex: 70, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+            <div onClick={(e) => e.stopPropagation()} style={{ background: "#1e1710", border: `1px solid ${GOLD}66`, borderRadius: 16, padding: "24px 20px", maxWidth: 320, width: "100%", textAlign: "center" }}>
+              <div style={{ fontSize: 22, marginBottom: 8 }}>🧭</div>
+              <div style={{ fontSize: 16, fontWeight: 800, color: IVORY, marginBottom: 6 }}>가이드 모드 시작</div>
+              <div style={{ fontSize: 13, color: MUT, lineHeight: 1.7, marginBottom: 18 }}>
+                고정 카드로 딜링 전 과정을 단계별로 안내합니다.<br />
+                <span style={{ color: GOLD }}>
+                  {mode === "practice" ? "연습 모드" : "실전 모드"} · 손님 {custCount}명
+                </span>
+              </div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button onClick={() => setShowGuideConfirm(false)} style={{ flex: 1, padding: "12px", background: "rgba(246,241,227,.06)", color: MUT, border: "1px solid rgba(246,241,227,.15)", borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>취소</button>
+                <button onClick={() => { setShowGuideConfirm(false); startRound(true); }} style={{ flex: 2, padding: "12px", background: `linear-gradient(180deg, ${GOLD}, #b08c3e)`, color: "#1d1609", border: "none", borderRadius: 10, fontSize: 14, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>시작</button>
+              </div>
+            </div>
+          </div>
+        )}
         {exitConfirm && (
           <div onClick={() => setExitConfirm(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.62)", zIndex: 60, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
             <div onClick={(e) => e.stopPropagation()} style={{ background: "#241c14", border: `1px solid ${GOLD}66`, borderRadius: 14, padding: "20px 18px", maxWidth: 320, width: "100%", textAlign: "center", boxShadow: "0 12px 32px rgba(0,0,0,.6)" }}>
@@ -1046,7 +1080,7 @@ ${transcript}
             </div>
             <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
               <button onClick={() => startRound()} style={{ flex: 1, background: `linear-gradient(180deg, ${GOLD}, #b08c3e)`, color: "#1d1609", border: "1px solid #e8caa0", borderRadius: 10, padding: "13px 8px", fontSize: 15, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>근무 시작</button>
-              <button onClick={() => startRound(true)} style={{ flex: 1, background: "rgba(210,171,92,.12)", color: GOLD, border: `1px solid ${GOLD}55`, borderRadius: 10, padding: "13px 8px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>🧭 가이드 시작</button>
+              <button onClick={() => setShowGuideConfirm(true)} style={{ flex: 1, background: "rgba(210,171,92,.12)", color: GOLD, border: `1px solid ${GOLD}55`, borderRadius: 10, padding: "13px 8px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>🧭 가이드 시작</button>
             </div>
             <div style={{ display: "flex", gap: 6 }}>
               <button onClick={() => setShowTraining(true)} style={{ flex: 1, background: "rgba(246,241,227,.06)", color: IVORY, border: "1px solid rgba(246,241,227,.22)", borderRadius: 8, padding: "9px 4px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>🎓 훈련 모드</button>
