@@ -2,6 +2,7 @@
 // @ts-nocheck
 "use client";
 import React, { useState, useRef, useEffect } from "react";
+import { App } from "@capacitor/app";
 import {
   GOLD, IVORY, RED, BLUE, MUT, ROOM,
   TABLE_MIN, TABLE_MAX, MAN,
@@ -113,16 +114,24 @@ export default function BaccaratDealerTrainerV3() {
   }, []);
   useEffect(() => {
     const handleBack = () => {
-      window.history.pushState({ intercept: true }, "");
+      if (showGuideConfirm) { setShowGuideConfirm(false); return; }
       if (showGlossary) { setShowGlossary(false); return; }
       if (showStory) { setShowStory(false); return; }
       if (showTraining) { if (trainingBackRef.current) trainingBackRef.current(); return; }
       if (guideMsg) { setGuideMsg(null); return; }
       if (phase !== "intro") { setExitConfirm(true); return; }
     };
+    let capListener = null;
+    App.addListener("backButton", ({ canGoBack }) => {
+      handleBack();
+    }).then((l) => { capListener = l; }).catch(() => {});
+    window.history.pushState({ intercept: true }, "");
     window.addEventListener("popstate", handleBack);
-    return () => window.removeEventListener("popstate", handleBack);
-  }, [showGlossary, showStory, showTraining, guideMsg, phase]);
+    return () => {
+      window.removeEventListener("popstate", handleBack);
+      if (capListener) capListener.remove();
+    };
+  }, [showGuideConfirm, showGlossary, showStory, showTraining, guideMsg, phase]);
   useEffect(() => {
     const prev = prevPhaseRef.current;
     prevPhaseRef.current = phase;
