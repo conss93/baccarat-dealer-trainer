@@ -212,7 +212,10 @@ export default function BaccaratDealerTrainerV3() {
   const timersRef = useRef([]);
   const customersRef = useRef([]);
   useEffect(() => { customersRef.current = customers; }, [customers]);
-  useEffect(() => () => clearTimers(), []);
+  useEffect(() => () => {
+    clearTimers();
+    if (grabRef.current) { clearInterval(grabRef.current.timer); grabRef.current = null; }
+  }, []);
 
   function clearTimers() { timersRef.current.forEach(clearTimeout); timersRef.current = []; }
   function later(fn, ms) { timersRef.current.push(setTimeout(fn, ms)); }
@@ -608,7 +611,6 @@ export default function BaccaratDealerTrainerV3() {
     if (!winners.length) {
       setBanner({ en: "All bets settled", ko: "지급 대상 없음 — 정산 완료" });
       later(startChat, 900);
-      setPhase("payout"); setPayQueue([]);
       return;
     }
     if (mode === "real") {
