@@ -1,4 +1,4 @@
-package com.baccarat.trainer;
+package dealer.training;
 
 import com.getcapacitor.BridgeActivity;
 

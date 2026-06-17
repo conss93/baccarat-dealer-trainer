@@ -1,7 +1,7 @@
 import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.baccarat.trainer',
+  appId: 'dealer.training',
   appName: '바카라 딜러 트레이닝',
   webDir: 'out',
   server: {
