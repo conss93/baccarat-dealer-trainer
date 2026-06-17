@@ -81,6 +81,8 @@ export default function BaccaratDealerTrainerV3() {
   const [showTraining, setShowTraining] = useState(false);
   const [guideMsg, setGuideMsg] = useState(null);
   const [showGuideConfirm, setShowGuideConfirm] = useState(false);
+  const [tutorialHint, setTutorialHint] = useState(null);
+  const [tutorialTarget, setTutorialTarget] = useState(null);
   const guideModeRef = useRef(false);
   const guideDoneRef = useRef(new Set());
   const tutorialModeRef = useRef(false);
@@ -96,12 +98,6 @@ export default function BaccaratDealerTrainerV3() {
   const trainingBackRef = useRef(null);
   const prevPhaseRef = useRef("intro");
   useEffect(() => { setSfxOn(soundOn); }, [soundOn]);
-  useEffect(() => {
-    if (phase !== "settleOrder" || !result) return;
-    setSettleOrderOpts(shuffle(result.winner === "tie"
-      ? [{label:"TIE 적중자에게 지급, P/B 베팅은 푸시 — 원금 그대로",ok:true},{label:"P/B 베팅을 모두 수거한다",ok:false},{label:"P/B 베팅에도 절반을 지급한다",ok:false}]
-      : [{label:"지는 베팅을 먼저 수거한다 (테이크)",ok:true},{label:"이긴 베팅부터 지급한다 (페이)",ok:false},{label:"사용한 카드를 먼저 수거한다",ok:false}]));
-  }, [phase, result?.winner]);
   useEffect(() => {
     (async () => {
       try {
@@ -121,10 +117,12 @@ export default function BaccaratDealerTrainerV3() {
       if (guideMsg) { setGuideMsg(null); return; }
       if (phase !== "intro") { setExitConfirm(true); return; }
     };
+    // Capacitor 네이티브 앱 (Android 하드웨어 뒤로가기)
     let capListener = null;
     App.addListener("backButton", ({ canGoBack }) => {
       handleBack();
     }).then((l) => { capListener = l; }).catch(() => {});
+    // 웹 브라우저 fallback
     window.history.pushState({ intercept: true }, "");
     window.addEventListener("popstate", handleBack);
     return () => {
@@ -170,17 +168,57 @@ export default function BaccaratDealerTrainerV3() {
         "진 쪽 손님의 칩을 수거합니다.\n\n• 각 손님 항목을 탭해서 수거를 완료하세요.\n• BANKER가 이긴 경우, 이긴 손님의 배당에서 커미션(5%)도 함께 수거합니다.\n• 수거 완료 후 페이(지불) 단계로 넘어갑니다.");
     } else if (phase === "payout") {
       showGuide("payout", "페이 — 칩 지급 (연습)",
-        "이긴 손님에게 배당금을 지급합니다.\n\n• 각 손님 항목을 탭해서 지급을 완료하세요.\n• PLAYER 베팅 적중: 베팅액 × 1배\n• BANKER 베팅 적중: 베팅액 × 0.95배 (커미션 5% 공제)\n• TIE 베팅 적중: 베팅액 × 8배\n• TIE 결과 시 P·B 베팅: 원금 그대로 환급 (푸시)\n\n각 손님 항목을 탭해서 지급을 완료하세요.");
+        "이긴 손님에게 배당금을 지급합니다.\n\n• PLAYER 베팅 적중: 베팅액 × 1배\n• BANKER 베팅 적중: 베팅액 × 0.95배 (커미션 5% 공제)\n• TIE 베팅 적중: 베팅액 × 8배\n• TIE 결과 시 P·B 베팅: 원금 그대로 환급 (푸시)\n\n각 손님 항목을 탭해서 지급을 완료하세요.");
     } else if (phase === "payWB") {
       showGuide("payWB", "페이 — 칩 지급 (실전)",
-        "이긴 손님에게 칩을 직접 구성해 지급합니다.\n\n• 칩을 선택해 올바른 금액을 만드세요.\n• PLAYER 적중: 베팅액 × 1배\n• BANKER 적중: 베팅액 × 0.95배 (커미션 5% 차감)\n• TIE 적중: 베팅액 × 8배\n• TIE 결과 · P·B 베팅: 원금 환급 (푸시)\n\n금액이 정확하면 자동으로 다음 단계로 넘어갑니다.");
+        "이긴 손님에게 칩을 직접 구성해 지급합니다.\n\n• PLAYER 적중: 베팅액 × 1배\n• BANKER 적중: 베팅액 × 0.95배 (커미션 5% 차감)\n• TIE 적중: 베팅액 × 8배\n• TIE 결과 · P·B 베팅: 원금 환급 (푸시)\n\n금액이 정확하면 자동으로 다음 단계로 넘어갑니다.");
     }
   }, [phase, mode]);
 
   useEffect(() => {
     if (!bettingDone) return;
     showGuide("bettingDone", "베팅 마감 준비", "모든 손님의 베팅이 완료되었습니다.\n\n• 지금이 마지막 점검 타이밍입니다. 규정 위반이 보이면 지금 지적하세요.\n• 이상이 없으면 「No More Bets」를 눌러 마감하세요.\n• 마감 후에는 베팅 변경이 불가합니다.");
+    if (tutorialModeRef.current) setTutorialTarget("nomorebets");
   }, [bettingDone]);
+
+  // ── 튜토리얼 힌트 (phase 변화 시) ──
+  useEffect(() => {
+    if (!tutorialModeRef.current) return;
+    if (phase === "betting") setTutorial("손님들이 베팅 중입니다. 한도 초과 위반을 발견하면 손님 이름을 탭해 지적하세요. 베팅이 잦아들면 마감 버튼을 누르세요.", null);
+    else if (phase === "lateBet") setTutorial("마감 후 베팅 시도! 반드시 거절해야 합니다. \"No more bets, sir.\" 버튼을 누르세요.", "reject-latebet");
+    else if (phase === "dealing") setTutorial("딜링 순서: P → B → P → B. 첫 번째 카드는 Player 차례입니다.", "deal-P");
+    else if (phase === "openPlayerCards") setTutorial("Player 카드 2장을 앞면으로 오픈합니다.", "open-btn");
+    else if (phase === "openBankerCards") setTutorial("Banker 카드 2장을 오픈합니다.", "open-btn");
+    else if (phase === "callInitial") setTutorial("양쪽 합계를 선택하세요. Player A♠+3♣=4, Banker 2♥+A♦=3 → \"Player Four, Banker Three\"를 선택하세요.", null);
+    else if (phase === "playerThird") setTutorial("Player 합 4 — 0~5이면 반드시 카드를 받습니다. \"Card for Player\"를 누르세요.", "player-draw");
+    else if (phase === "openPlayerThird") setTutorial("Player 3번째 카드를 앞면으로 오픈합니다.", "open-btn");
+    else if (phase === "bankerThird") setTutorial("Banker 합 3, Player 3rd 값 2 → 룰 차트 기준 Banker 카드. \"Card for Banker\"를 누르세요.", "banker-draw");
+    else if (phase === "openBankerThird") setTutorial("Banker 3번째 카드를 오픈합니다.", "open-btn");
+    else if (phase === "callWinner") setTutorial("최종: Player 6 (A+3+2), Banker 9 (2+A+6). Banker 승! 이긴 쪽 숫자를 먼저 콜합니다.", null);
+    else if (phase === "settleOrder") setTutorial("정산 순서: ① 테이크(지는 베팅 수거) → ② 페이. \"지는 베팅을 먼저 수거한다\"를 선택하세요.", "settle-take");
+    else if (phase === "takeWB") setTutorial("지는 손님의 베팅 스택을 탭해 수거합니다. 모두 수거 후 \"테이크 완료\"를 누르세요.", "confirm-take");
+    else if (phase === "collecting") setTutorial("지는 베팅을 수거하고 있습니다…", null);
+    else if (phase === "payWB") setTutorial("Banker 승 — 1:1로 지급 후 커미션(5%)을 수거합니다. 트레이에서 칩을 집어 지급 구역에 놓고 확정하세요.", "pay-confirm");
+    else if (phase === "payout") setTutorial("이긴 손님에게 배당금을 지급합니다. Banker 승 — 커미션(5%)을 확인하세요.", null);
+    else if (phase === "chat") setTutorial("손님 응대 단계입니다. 추천 응대를 선택하거나 직접 입력해 대화를 마무리하세요.", "chat-end");
+    else setTutorial(null, null);
+  }, [phase]);
+
+  // 딜링 중 dealtCount 변화 → 다음 대상 표시
+  useEffect(() => {
+    if (!tutorialModeRef.current || phase !== "dealing" || dealtCount >= 4) return;
+    const next = dealtCount % 2 === 0 ? "deal-P" : "deal-B";
+    const label = dealtCount % 2 === 0 ? "Player" : "Banker";
+    setTutorial(`딜링 ${dealtCount + 1}/4 — ${label}에게 카드를 딜합니다.`, next);
+  }, [dealtCount, phase]);
+
+  // payWB 단계 변화 → 힌트 업데이트
+  useEffect(() => {
+    if (!tutorialModeRef.current || !payWB) return;
+    if (payWB.step === "comm") setTutorial("커미션 5%를 계산해 입력하세요. Banker 적중 배당에서 공제됩니다.", null);
+    else if (payWB.step === "collect") setTutorial("지급 스택에서 커미션 금액만큼 탭해 수거 구역으로 이동시키세요.", "collect-confirm");
+    else if (payWB.step === "refund") setTutorial("거스름 = 수거액 − 커미션. 트레이에서 집어 환급 구역에 놓고 확정하세요.", "refund-confirm");
+  }, [payWB?.step]);
 
   // 응대
   const [chatCust, setChatCust] = useState(null);
@@ -208,7 +246,6 @@ export default function BaccaratDealerTrainerV3() {
   const bThirdPendingRef = useRef(null);
   const [lateBetBtnOrder, setLateBetBtnOrder] = useState(true);
   const [takeConfirm, setTakeConfirm] = useState(null);
-  const [settleOrderOpts, setSettleOrderOpts] = useState([]);
   const timersRef = useRef([]);
   const customersRef = useRef([]);
   useEffect(() => { customersRef.current = customers; }, [customers]);
@@ -258,6 +295,12 @@ export default function BaccaratDealerTrainerV3() {
     setGuideMsg({ title, body });
   }
 
+  function setTutorial(msg, target = null) {
+    setTutorialHint(msg);
+    setTutorialTarget(target);
+  }
+  function hl(id) { return tutorialTarget === id ? "thl" : ""; }
+
   // ── 라운드 시작 ──
   function startRound(withGuide = false) {
     const storageKey = `guide-${mode}-seen`;
@@ -278,7 +321,7 @@ export default function BaccaratDealerTrainerV3() {
       : [drawCard(), drawCard(), drawCard(), drawCard()];
     setPendingDeal(initialCards);
     setResult(null); setBanner(null); setFlash(null); setLock(false);
-    setBettingDone(false); setViolation(null); setLateBet(null);
+    setBettingDone(false); setViolation(null); setLateBet(null); setTutorialHint(null); setTutorialTarget(null);
     setBubble(null); bubbleQ.current = []; bubbleBusy.current = false;
     setPayQueue([]); setPayIdx(0); setTakeState(null); setPayWB(null); setGrab(null);
     if (grabRef.current) { clearInterval(grabRef.current.timer); grabRef.current = null; }
@@ -323,6 +366,7 @@ export default function BaccaratDealerTrainerV3() {
     }
     const streamEnd = baseEnd + 900 * (changes + 1);
     // 돌발은 라운드당 최대 1개 (위반 50% / 늦은 베팅은 마감 시 35%, 상호 배타)
+    // 튜토리얼 모드: 한도초과 위반 강제
     const hasViolation = withGuide ? true : Math.random() < 0.5;
     later(() => {
       const cs = customersRef.current.filter((c) => c.side);
@@ -539,15 +583,15 @@ export default function BaccaratDealerTrainerV3() {
   }
 
   // ── 정산 판단 ──
-  function pickSettleOrder(ok) {
+  function pickSettleOrder(i) {
     if (lock) return;
     const isTie = result.winner === "tie";
     if (isTie) {
-      if (ok) grade(true, "정확 — 타이는 진 사람이 없습니다");
+      if (i === 0) grade(true, "정확 — 타이는 진 사람이 없습니다");
       else grade(false, "타이 정산 오류", "타이 시 P/B 베팅은 푸시(원금 유지). TIE 적중에만 8:1 지급. 수거할 베팅이 없습니다.");
       enterPayStage();
     } else {
-      if (ok) grade(true, "정확 — 테이크 먼저");
+      if (i === 0) grade(true, "정확 — 테이크 먼저");
       else grade(false, "정산 순서 오류", "정산은 항상 ① 테이크(지는 베팅 수거) → ② 페이. 분쟁 방지의 기본입니다.");
       if (mode === "real") enterTakeWB();
       else startAutoCollect();
@@ -982,6 +1026,8 @@ ${transcript}
         @keyframes flashIn { from {opacity:0; transform: translateY(-6px);} to {opacity:1; transform:none;} }
         .flashIn { animation: flashIn .22s ease both; }
         input::placeholder { color: #8a7f6e; }
+        @keyframes thl { 0%,100% { outline-color: rgba(210,171,92,.9); } 50% { outline-color: rgba(210,171,92,.2); } }
+        .thl { outline: 2px solid rgba(210,171,92,.9); outline-offset: 3px; animation: thl 1.1s ease-in-out infinite; border-radius: 10px; }
       `}</style>
       <div style={{ maxWidth: 560, margin: "0 auto" }}>
         {/* 나가기 확인 */}
@@ -1024,6 +1070,13 @@ ${transcript}
             </div>
           </div>
         )}
+        {tutorialHint && (
+          <div style={{ position: "fixed", bottom: 14, left: "50%", transform: "translateX(-50%)", width: "calc(100% - 24px)", maxWidth: 548, background: "rgba(18,13,8,.97)", border: `1px solid ${GOLD}88`, borderRadius: 12, padding: "11px 14px", zIndex: 52, display: "flex", alignItems: "flex-start", gap: 10, boxShadow: "0 4px 20px rgba(0,0,0,.6)" }}>
+            <span style={{ fontSize: 17, flexShrink: 0, marginTop: 1 }}>🧭</span>
+            <div style={{ flex: 1, fontSize: 12.5, color: IVORY, lineHeight: 1.55 }}>{tutorialHint}</div>
+            <button onClick={() => setTutorialHint(null)} style={{ background: "none", border: "none", color: MUT, fontSize: 16, cursor: "pointer", padding: 0, flexShrink: 0, lineHeight: 1 }}>✕</button>
+          </div>
+        )}
         {exitConfirm && (
           <div onClick={() => setExitConfirm(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.62)", zIndex: 60, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
             <div onClick={(e) => e.stopPropagation()} style={{ background: "#241c14", border: `1px solid ${GOLD}66`, borderRadius: 14, padding: "20px 18px", maxWidth: 320, width: "100%", textAlign: "center", boxShadow: "0 12px 32px rgba(0,0,0,.6)" }}>
@@ -1060,6 +1113,7 @@ ${transcript}
         {/* 인트로 */}
         {phase === "intro" && (
           <div style={{ background: "rgba(246,241,227,.04)", border: "1px solid rgba(210,171,92,.3)", borderRadius: 16, padding: "20px 16px", textAlign: "center" }}>
+            {/* 타이틀 */}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 4 }}>
               <span style={{ fontSize: 26 }}>🂡</span>
               <h2 style={{ margin: 0, fontSize: 17 }}>딜러석에 오신 것을 환영합니다</h2>
@@ -1067,6 +1121,8 @@ ${transcript}
             <p style={{ color: MUT, fontSize: 12.5, lineHeight: 1.6, margin: "4px auto 14px", maxWidth: 400 }}>
               한도 {won(TABLE_MIN)} ~ {won(TABLE_MAX)} · 베팅 감시 · 딜링 · 3rd 카드 룰 · 정산 · AI 응대
             </p>
+
+            {/* 모드 + 손님 수 한 줄 */}
             <div style={{ display: "flex", gap: 10, alignItems: "center", justifyContent: "center", marginBottom: 12, flexWrap: "wrap" }}>
               <div style={{ display: "flex", gap: 6 }}>
                 {[["practice", "연습"], ["real", "실전"]].map(([m, label]) => (
@@ -1081,6 +1137,8 @@ ${transcript}
                 <span style={{ fontSize: 11, color: MUT, alignSelf: "center", marginLeft: 2 }}>명</span>
               </div>
             </div>
+
+            {/* 기록 */}
             <div style={{ fontSize: 12, marginBottom: 14, minHeight: 16 }}>
               {(() => {
                 const r = records[`${mode}-${custCount}`];
@@ -1089,17 +1147,22 @@ ${transcript}
                   : <span style={{ color: MUT }}>기록 없음 — 첫 기록을 세워 보세요</span>;
               })()}
             </div>
+
+            {/* 메인 버튼 행 */}
             <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
               <button onClick={() => startRound()} style={{ flex: 1, background: `linear-gradient(180deg, ${GOLD}, #b08c3e)`, color: "#1d1609", border: "1px solid #e8caa0", borderRadius: 10, padding: "13px 8px", fontSize: 15, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>근무 시작</button>
               <button onClick={() => setShowGuideConfirm(true)} style={{ flex: 1, background: "rgba(210,171,92,.12)", color: GOLD, border: `1px solid ${GOLD}55`, borderRadius: 10, padding: "13px 8px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>🧭 가이드 시작</button>
             </div>
-            <div style={{ display: "flex", gap: 6 }}>
+
+            {/* 보조 버튼 행 */}
+            <div style={{ display: "flex", gap: 6, justifyContent: "center" }}>
               <button onClick={() => setShowTraining(true)} style={{ flex: 1, background: "rgba(246,241,227,.06)", color: IVORY, border: "1px solid rgba(246,241,227,.22)", borderRadius: 8, padding: "9px 4px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>🎓 훈련 모드</button>
               <button onClick={() => setShowStory(true)} style={{ flex: 1, background: "rgba(246,241,227,.06)", color: IVORY, border: "1px solid rgba(246,241,227,.22)", borderRadius: 8, padding: "9px 4px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>📖 스토리</button>
               <button onClick={() => setShowGlossary(true)} style={{ flex: 1, background: "rgba(246,241,227,.06)", color: GOLD, border: `1px solid ${GOLD}55`, borderRadius: 8, padding: "9px 4px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>📚 용어 사전</button>
             </div>
           </div>
         )}
+
         {phase !== "intro" && (
           <>
             {/* ─── 씬 ─── */}
@@ -1241,9 +1304,11 @@ ${transcript}
               {phase === "betting" && (
                 <>
                   <PanelTitle t="STEP 1 — 베팅 감시" d={bettingDone ? "베팅이 잦아들었습니다. 이상 베팅이 없는지 좌석을 점검하고 마감하세요." : "베팅이 들어오고 있습니다. 수상한 스택은 좌석을 탭해 점검하세요 (점검은 자유, 오지적은 감점)."} />
-                  <ActionBtn accent disabled={!bettingDone} onClick={noMoreBets}>
-                    {bettingDone ? "🔔 “No More Bets” — 베팅 마감 선언" : "베팅 진행 중… (잦아들 때까지 대기)"}
-                  </ActionBtn>
+                  <div className={hl("nomorebets")} style={{ borderRadius: 10 }}>
+                    <ActionBtn accent disabled={!bettingDone} onClick={noMoreBets}>
+                      {bettingDone ? "🔔 “No More Bets” — 베팅 마감 선언" : "베팅 진행 중… (잦아들 때까지 대기)"}
+                    </ActionBtn>
+                  </div>
                 </>
               )}
 
@@ -1253,13 +1318,17 @@ ${transcript}
                   <div style={{ display: "grid", gap: 8 }}>
                     {lateBetBtnOrder ? (
                       <>
-                        <ActionBtn onClick={() => resolveLateBet(true)}>🖐 “No more bets, sir.” — 정중히 거절하고 칩을 돌려드린다</ActionBtn>
+                        <div className={hl("reject-latebet")} style={{ borderRadius: 10 }}>
+                          <ActionBtn onClick={() => resolveLateBet(true)}>🖐 “No more bets, sir.” — 정중히 거절하고 칩을 돌려드린다</ActionBtn>
+                        </div>
                         <ActionBtn onClick={() => resolveLateBet(false)}>이번 한 번만 받아준다</ActionBtn>
                       </>
                     ) : (
                       <>
                         <ActionBtn onClick={() => resolveLateBet(false)}>이번 한 번만 받아준다</ActionBtn>
-                        <ActionBtn onClick={() => resolveLateBet(true)}>🖐 “No more bets, sir.” — 정중히 거절하고 칩을 돌려드린다</ActionBtn>
+                        <div className={hl("reject-latebet")} style={{ borderRadius: 10 }}>
+                          <ActionBtn onClick={() => resolveLateBet(true)}>🖐 “No more bets, sir.” — 정중히 거절하고 칩을 돌려드린다</ActionBtn>
+                        </div>
                       </>
                     )}
                   </div>
@@ -1270,8 +1339,8 @@ ${transcript}
                 <>
                   <PanelTitle t={`STEP 2 — 딜링 (${Math.min(dealtCount + 1, 4)}/4)`} d="슈에서 카드를 뽑았습니다. 어느 쪽에?" />
                   <div style={{ display: "flex", gap: 10 }}>
-                    <button onClick={() => dealTo("B")} style={dealBtnStyle(RED)}>← BANKER</button>
-                    <button onClick={() => dealTo("P")} style={dealBtnStyle(BLUE)}>PLAYER →</button>
+                    <button onClick={() => dealTo("B")} className={hl("deal-B")} style={dealBtnStyle(RED)}>← BANKER</button>
+                    <button onClick={() => dealTo("P")} className={hl("deal-P")} style={dealBtnStyle(BLUE)}>PLAYER →</button>
                   </div>
                 </>
               )}
@@ -1279,28 +1348,36 @@ ${transcript}
               {phase === "openPlayerCards" && (
                 <>
                   <PanelTitle t="STEP 2 — Player 카드 오픈" d="Player 카드 2장을 앞면으로 뒤집어 보여줍니다." />
-                  <ActionBtn accent onClick={openPlayerCards}>오픈</ActionBtn>
+                  <div className={hl("open-btn")} style={{ borderRadius: 10 }}>
+                    <ActionBtn accent onClick={openPlayerCards}>오픈</ActionBtn>
+                  </div>
                 </>
               )}
 
               {phase === "openBankerCards" && (
                 <>
                   <PanelTitle t="STEP 2 — Banker 카드 오픈" d="Banker 카드 2장을 앞면으로 뒤집어 보여줍니다." />
-                  <ActionBtn accent onClick={openBankerCards}>오픈</ActionBtn>
+                  <div className={hl("open-btn")} style={{ borderRadius: 10 }}>
+                    <ActionBtn accent onClick={openBankerCards}>오픈</ActionBtn>
+                  </div>
                 </>
               )}
 
               {phase === "openPlayerThird" && (
                 <>
                   <PanelTitle t="STEP 4 — Player 3번째 카드 오픈" d="Player 3번째 카드를 앞면으로 공개합니다." />
-                  <ActionBtn accent onClick={openPlayerThird}>오픈</ActionBtn>
+                  <div className={hl("open-btn")} style={{ borderRadius: 10 }}>
+                    <ActionBtn accent onClick={openPlayerThird}>오픈</ActionBtn>
+                  </div>
                 </>
               )}
 
               {phase === "openBankerThird" && (
                 <>
                   <PanelTitle t="STEP 5 — Banker 3번째 카드 오픈" d="Banker 3번째 카드를 앞면으로 공개합니다." />
-                  <ActionBtn accent onClick={openBankerThird}>오픈</ActionBtn>
+                  <div className={hl("open-btn")} style={{ borderRadius: 10 }}>
+                    <ActionBtn accent onClick={openBankerThird}>오픈</ActionBtn>
+                  </div>
                 </>
               )}
 
@@ -1317,7 +1394,7 @@ ${transcript}
                 <>
                   <PanelTitle t="STEP 4 — Player 3rd 판단" d={`Player ${handTotal(pCards)}, Banker ${handTotal(bCards)}. Player에게 추가 카드?`} />
                   <div style={{ display: "flex", gap: 10 }}>
-                    <button onClick={() => playerThirdDecision(true)} style={dealBtnStyle(BLUE)}>“Card for Player”</button>
+                    <button onClick={() => playerThirdDecision(true)} className={hl("player-draw")} style={dealBtnStyle(BLUE)}>“Card for Player”</button>
                     <button onClick={() => playerThirdDecision(false)} style={dealBtnStyle("#7a7264")}>스탠드</button>
                   </div>
                 </>
@@ -1327,7 +1404,7 @@ ${transcript}
                 <>
                   <PanelTitle t="STEP 5 — Banker 3rd 판단" d={`Banker ${handTotal(bCards)}${pThirdRef.current === null ? " · Player 스탠드" : ` · Player 3rd 값: ${pThirdRef.current}`}. Banker에게 추가 카드?`} />
                   <div style={{ display: "flex", gap: 10 }}>
-                    <button onClick={() => bankerThirdDecision(true)} style={dealBtnStyle(RED)}>“Card for Banker”</button>
+                    <button onClick={() => bankerThirdDecision(true)} className={hl("banker-draw")} style={dealBtnStyle(RED)}>“Card for Banker”</button>
                     <button onClick={() => bankerThirdDecision(false)} style={dealBtnStyle("#7a7264")}>스탠드</button>
                   </div>
                 </>
@@ -1346,7 +1423,14 @@ ${transcript}
                 <>
                   <PanelTitle t="STEP 7 — 정산 절차 판단" d={result.winner === "tie" ? "타이입니다. 정산 절차는?" : "정산의 첫 번째 동작은?"} />
                   <div style={{ display: "grid", gap: 8 }}>
-                    {settleOrderOpts.map((o, i) => <ActionBtn key={i} onClick={() => pickSettleOrder(o.ok)}>{o.label}</ActionBtn>)}
+                    {(result.winner === "tie"
+                      ? ["TIE 적중자에게 지급, P/B 베팅은 푸시 — 원금 그대로", "P/B 베팅을 모두 수거한다", "P/B 베팅에도 절반을 지급한다"]
+                      : ["지는 베팅을 먼저 수거한다 (테이크)", "이긴 베팅부터 지급한다 (페이)", "사용한 카드를 먼저 수거한다"]
+                    ).map((t, i) => (
+                      <div key={i} className={i === 0 && result.winner !== "tie" ? hl("settle-take") : ""} style={{ borderRadius: 10 }}>
+                        <ActionBtn onClick={() => pickSettleOrder(i)}>{t}</ActionBtn>
+                      </div>
+                    ))}
                   </div>
                 </>
               )}
@@ -1385,7 +1469,9 @@ ${transcript}
                       );
                     })}
                   </div>
-                  <ActionBtn accent onClick={confirmTake}>테이크 완료</ActionBtn>
+                  <div className={hl("confirm-take")} style={{ borderRadius: 10 }}>
+                    <ActionBtn accent onClick={confirmTake}>테이크 완료</ActionBtn>
+                  </div>
                 </div>
               )}
 
@@ -1488,9 +1574,9 @@ ${transcript}
                     </div>
                   )}
 
-                  {payWB.step === "pay" && <ActionBtn accent onClick={confirmPay}>지급 확정 — 사이징 체크</ActionBtn>}
-                  {payWB.step === "collect" && <ActionBtn accent onClick={confirmCollect}>수거 확정</ActionBtn>}
-                  {payWB.step === "refund" && <ActionBtn accent onClick={confirmRefund}>환급 확정</ActionBtn>}
+                  {payWB.step === "pay" && <div className={hl("pay-confirm")} style={{ borderRadius: 10 }}><ActionBtn accent onClick={confirmPay}>지급 확정 — 사이징 체크</ActionBtn></div>}
+                  {payWB.step === "collect" && <div className={hl("collect-confirm")} style={{ borderRadius: 10 }}><ActionBtn accent onClick={confirmCollect}>수거 확정</ActionBtn></div>}
+                  {payWB.step === "refund" && <div className={hl("refund-confirm")} style={{ borderRadius: 10 }}><ActionBtn accent onClick={confirmRefund}>환급 확정</ActionBtn></div>}
                 </div>
               )}
 
@@ -1535,7 +1621,9 @@ ${transcript}
                       </div>
                     </>
                   )}
-                  <ActionBtn accent onClick={endChatToRound}>{chatDone ? "라운드 마무리 →" : "▶ “게임 진행하겠습니다” — 대화 정리하고 진행"}</ActionBtn>
+                  <div className={hl("chat-end")} style={{ borderRadius: 10 }}>
+                    <ActionBtn accent onClick={endChatToRound}>{chatDone ? "라운드 마무리 →" : "▶ “게임 진행하겠습니다” — 대화 정리하고 진행"}</ActionBtn>
+                  </div>
                 </>
               )}
 
